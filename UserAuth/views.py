@@ -32,10 +32,10 @@ def handle_login(request):
     if request.method == 'POST':
         username = request.POST.get('username')
         password = request.POST.get('password')
-        
+
         # Authenticate the user
         user = authenticate(request, username=username, password=password)
-        
+
         if user is not None:
             # Log in the user
             login(request, user)
@@ -44,7 +44,7 @@ def handle_login(request):
         else:
             messages.error(request, 'Invalid username or password. Please try again.')
             return redirect('handle-login')  # Redirect back to login page for retry
-    
+
     # If GET request, just render the login page
     return render(request, 'login.html')
 
@@ -55,25 +55,25 @@ def handle_signup(request):
         email = request.POST.get('email')
         password1 = request.POST.get('password1')
         password2 = request.POST.get('password2')
-        
+
         # Validate form inputs
         if password1 != password2:
             messages.error(request, "Passwords do not match.")
             return redirect('signup')
-        
+
         if User.objects.filter(username=username).exists():
             messages.error(request, "Username already taken.")
             return redirect('signup')
-        
+
         if User.objects.filter(email=email).exists():
             messages.error(request, "Email already registered.")
             return redirect('signup')
-        
+
         # Create the user
         try:
             user = User.objects.create_user(username=username, email=email, password=password1)
             user.save()
-            
+
             # Log in the user after signup
             login(request, user)
             messages.success(request, f"Account created successfully! Welcome, {username}!")

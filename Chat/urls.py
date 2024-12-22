@@ -2,5 +2,5 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
-    path("<str:sender>/<str:receiver>/", views.chat, name="chat"),
+    path("<str:user>/<str:send_to>/", views.chat, name="chat"),
 ]
