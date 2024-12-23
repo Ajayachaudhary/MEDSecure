@@ -3,7 +3,7 @@ from django.contrib.auth.models import User
 from .models import Mesaage
 from django.db.models import Q
 
-def chat(request, user, send_to):
+def room(request, user, send_to):
 	user_id = request.user
 	doctors = User.objects.filter(is_staff=True)
 	if user_id.username != user:
