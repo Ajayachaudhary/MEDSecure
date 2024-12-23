@@ -74,9 +74,6 @@
 
 			<h1 class="h3 mb-3">Messages</h1>
 
-			{% if status == "error" %}
-			<div>{{ message }}</div>
-			{% else %}
 			<div class="card">
 				<div class="row g-0">
 					<div class="col-12 col-lg-5 col-xl-3 border-right">
@@ -155,6 +152,11 @@
 						<div class="position-relative">
 							<div class="chat-messages p-4">
 
+								{% if status == 'error' %}
+								<div>
+									{{ messages }}
+								</div>
+								{% else %}
 								{% for message in messages %}
 								{% if current_user == message.sender.username %}
 								<div class="chat-message-right pb-4">
@@ -187,7 +189,7 @@
 								</div>
 								{% endif %}
 								{% endfor %}
-
+								{% endif %}
 							</div>
 						</div>
 
@@ -201,7 +203,6 @@
 					</div>
 				</div>
 			</div>
-			{% endif %}
 		</div>
 	</main>
 	<script src="https://code.jquery.com/jquery-1.10.2.min.js"></script>
