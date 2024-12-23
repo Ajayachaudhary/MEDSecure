@@ -3,4 +3,5 @@ from . import views
 
 urlpatterns = [
     path("<str:user>/<str:send_to>/", views.chat, name="chat"),
+    path("", views.chat_template, name="chat"),
 ]

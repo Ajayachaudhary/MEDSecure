@@ -14,3 +14,7 @@ def chat(request, user, send_to):
 		return render(request, 'chat/chat.html', {'status': 'error', 'message': 'Opps Error!'})
 
 	return render(request, "chat/chat.html", {'messages': messages, 'logged_user_name': user, 'other_user_name': send_to})
+
+def chat_template( request ):
+	 doctors = User.objects.filter(is_staff=True)
+	 return render(request, 'chat/chat.html', {'status': 'initial', 'doctors': doctors})
