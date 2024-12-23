@@ -90,7 +90,8 @@
 						</div>
 
 						{% for doctor in doctors %}
-						<a href="#" class="list-group-item list-group-item-action border-0">
+						<a href="{% url 'chat' user=current_user send_to=doctor.username %}"
+							class="list-group-item list-group-item-action border-0">
 							<div class="d-flex align-items-start">
 								<img src="https://bootdey.com/img/Content/avatar/avatar5.png"
 									class="rounded-circle mr-1" alt="{{ doctor.username }}" width="40" height="40">
@@ -100,12 +101,17 @@
 								</div>
 							</div>
 						</a>
-					{% endfor %}
-
-
+						{% endfor %}
 						<hr class="d-block d-lg-none mt-1 mb-0">
 					</div>
 					<div class="col-12 col-lg-7 col-xl-9">
+						{% if status == 'initial' %}
+						<div class="text-center my-5">
+							<h2>Welcome to the MEDSecure Chat!</h2>
+							<p>Select a doctor from the list to start a conversation.</p>
+							<img src="https://via.placeholder.com/200" alt="Welcome Image" class="mt-3">
+						</div>
+						{% else %}
 						<div class="py-2 px-4 border-bottom d-none d-lg-block">
 							<div class="d-flex align-items-center py-1">
 								<div class="position-relative">
@@ -150,7 +156,7 @@
 							<div class="chat-messages p-4">
 
 								{% for message in messages %}
-								{% if logged_user_name == message.sender.username %}
+								{% if current_user == message.sender.username %}
 								<div class="chat-message-right pb-4">
 									<div>
 										<img src="https://bootdey.com/img/Content/avatar/avatar1.png"
@@ -191,7 +197,7 @@
 								<button class="btn btn-primary">Send</button>
 							</div>
 						</div>
-
+						{% endif %}
 					</div>
 				</div>
 			</div>

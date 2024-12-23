@@ -5,7 +5,7 @@ from django.db.models import Q
 
 def chat(request, user, send_to):
 	user_id = request.user
-
+	doctors = User.objects.filter(is_staff=True)
 	if user_id.username != user:
 		return render(request, 'chat/chat.html', {'status': 'error', 'message': 'Opps Error!'})
 	messages = Mesaage.objects.filter(Q(sender=user_id) | Q(receiver_id=user_id)).order_by('timestamp')
@@ -13,8 +13,9 @@ def chat(request, user, send_to):
 	if other_user and other_user.sender.username != send_to:
 		return render(request, 'chat/chat.html', {'status': 'error', 'message': 'Opps Error!'})
 
-	return render(request, "chat/chat.html", {'messages': messages, 'logged_user_name': user, 'other_user_name': send_to})
+	return render(request, "chat/chat.html", {'messages': messages, 'current_user': user, 'other_user_name': send_to, 'doctors' : doctors})
 
 def chat_template( request ):
-	 doctors = User.objects.filter(is_staff=True)
-	 return render(request, 'chat/chat.html', {'status': 'initial', 'doctors': doctors})
+	user = request.user.username
+	doctors = User.objects.filter(is_staff=True)
+	return render(request, 'chat/chat.html', {'status': 'initial', 'doctors': doctors, 'current_user': user})
