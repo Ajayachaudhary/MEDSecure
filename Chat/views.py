@@ -4,18 +4,75 @@ from .models import Mesaage
 from django.db.models import Q
 
 def room(request, user, send_to):
-	user_id = request.user
-	doctors = User.objects.filter(is_staff=True)
-	if user_id.username != user:
-		return render(request, 'chat/chat.html', {'status': 'error', 'message': 'Opps Error!'})
-	messages = Mesaage.objects.filter(Q(sender=user_id) | Q(receiver_id=user_id)).order_by('timestamp')
-	other_user = messages.exclude(sender=user_id).first()
-	if other_user and other_user.sender.username != send_to:
-		return render(request, 'chat/chat.html', {'status': 'error', 'messages': 'No Messages...', 'other_user_name': send_to, 'doctors' : doctors, 'current_user': user})
+    loggedUser = request.user
+    username = loggedUser.username
 
-	return render(request, "chat/chat.html", {'messages': messages, 'current_user': user, 'other_user_name': send_to, 'doctors' : doctors})
+    if username != user:
+        return render( request, 'chat/chat.html', {'status': 'error', 'message': 'Opps Error!'} )
 
-def chat_template( request ):
-	user = request.user.username
-	doctors = User.objects.filter(is_staff=True)
-	return render(request, 'chat/chat.html', {'status': 'initial', 'doctors': doctors, 'current_user': user})
+    is_staff = loggedUser.is_staff
+    messages = Mesaage.objects.filter(
+            Q(sender=loggedUser, receiver__username=send_to) |
+            Q(sender__username=send_to, receiver=loggedUser)
+        ).order_by('timestamp')
+    other_user = messages.exclude(sender=loggedUser).first()
+
+    if is_staff:
+        users = User.objects.filter( is_staff=False )
+        if other_user and other_user.sender.username != send_to:
+            context = {
+                'status': 'error',
+                'messages': 'No Messages...',
+                'users': users,
+                'current_user': user,
+                'other_user_name': send_to,
+            }
+            return render( request, 'chat/chat.html', context )
+
+        return render( request, 'chat/chat.html', {
+                'messages': messages,
+                'users': users,
+                'current_user': user,
+                'other_user_name': send_to,
+            } )
+    else:
+        users = User.objects.filter( is_staff=True )
+
+        if other_user and other_user.sender.username != send_to:
+            context = {
+                'status': 'error',
+                'messages': 'No Messages...',
+                'users': users,
+                'current_user': user,
+                'other_user_name': send_to,
+            }
+            return render( request, 'chat/chat.html', context )
+
+        return render( request, 'chat/chat.html', {
+                'messages': messages,
+                'users': users,
+                'current_user': user,
+                'other_user_name': send_to,
+            } )
+
+def chat_template(request):
+    user = request.user
+    username = user.username
+    is_staff = user.is_staff
+
+    if is_staff:
+        users = User.objects.filter( is_staff = False)
+        context = {
+            'status': 'initial',
+            'users': users,
+            'current_user': username
+        }
+    else:
+        users = User.objects.filter(is_staff=True)
+        context = {
+            'status': 'initial',
+            'users': users,
+            'current_user': username
+        }
+
+    return render( request, 'chat/chat.html', context )

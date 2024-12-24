@@ -86,14 +86,14 @@
                             </div>
                         </div>
 
-                        {% for doctor in doctors %}
-                        <a href="{% url 'chat' user=current_user send_to=doctor.username %}"
+                        {% for user in users %}
+                        <a href="{% url 'chat' user=current_user send_to=user.username %}"
                             class="list-group-item list-group-item-action border-0">
                             <div class="d-flex align-items-start">
                                 <img src="https://bootdey.com/img/Content/avatar/avatar5.png"
                                     class="rounded-circle mr-1" alt="{{ doctor.username }}" width="40" height="40">
                                 <div class="flex-grow-1 ml-3">
-                                    <strong>{{ doctor.username }}</strong>
+                                    <strong>{{ user.username }}</strong>
                                     <div class="small"><span class="fas fa-circle chat-online"></span> Online</div>
                                 </div>
                             </div>
