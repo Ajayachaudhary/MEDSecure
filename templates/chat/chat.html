@@ -211,12 +211,13 @@
 </body>
 
 <script>
-    const otherUserName = "{{ other_user_name|escapejs }}"
+    const room_name = "{{ room_name|escapejs }}"
+
     const chatSocket = new WebSocket(
         'ws://'
         + window.location.host
         + '/ws/chat/'
-        + otherUserName
+        + room_name
         + '/'
     );
 

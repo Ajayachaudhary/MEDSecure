@@ -19,6 +19,7 @@ def room(request, user, send_to):
 
     if is_staff:
         users = User.objects.filter( is_staff=False )
+        room_name = f'{user}_{send_to}'
         if other_user and other_user.sender.username != send_to:
             context = {
                 'status': 'error',
@@ -34,10 +35,11 @@ def room(request, user, send_to):
                 'users': users,
                 'current_user': user,
                 'other_user_name': send_to,
+                'room_name': room_name
             } )
     else:
         users = User.objects.filter( is_staff=True )
-
+        room_name = f'{send_to}_{user}'
         if other_user and other_user.sender.username != send_to:
             context = {
                 'status': 'error',
@@ -53,6 +55,7 @@ def room(request, user, send_to):
                 'users': users,
                 'current_user': user,
                 'other_user_name': send_to,
+                'room_name': room_name
             } )
 
 def chat_template(request):
