@@ -8,11 +8,7 @@ from django.db.models import Q
 
 @login_required( login_url="login")
 def index(request):
-    user_name =  request.user
-    print(user_name)
-    messages = Mesaage.objects.filter(Q(sender=user_name) | Q(receiver_id=user_name)).order_by('timestamp')
-    other_user = messages.exclude(sender=user_name).first()
-    return render(request, 'index.html', {'messages': messages, 'logged_user_name': request.user.username, 'other_user_name': other_user.sender.username if other_user else 'No user'})
+    return redirect('chat/')
 
 @user_passes_test(lambda user: not user.is_authenticated, login_url='home')
 def login_view(request):
