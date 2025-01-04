@@ -349,10 +349,13 @@
                             class="list-group-item list-group-item-action border-0">
                             <div class="d-flex align-items-start">
                                 <img src="https://bootdey.com/img/Content/avatar/avatar5.png"
-                                    class="rounded-circle mr-1" alt="{{ doctor.username }}" width="40" height="40">
+                                    class="rounded-circle mr-1" alt="{{ user.username }}" width="40" height="40">
                                 <div class="flex-grow-1 ml-3">
                                     <strong>{{ user.username }}</strong>
-                                    <div class="small"><span class="fas fa-circle chat-online"></span> Online</div>
+                                    <div class="small">
+                                        <span class="fas fa-circle user-status chat-offline" data-username="{{ user.username }}"></span>
+                                        <span>Offline</span>
+                                    </div>
                                 </div>
                             </div>
                         </a>
@@ -522,8 +525,7 @@
 </body>
 
 <script>
-    const room_name = "{{ room_name|escapejs }}"
-
+    const room_name = "{{ room_name|escapejs }}";
     const chatSocket = new WebSocket(
         'ws://'
         + window.location.host
@@ -580,8 +582,12 @@
             // Scroll to the bottom of the chat
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
         }
-    };
 
+        if (data.type === "user_list") {
+            // Update online/offline status for all users
+            updateOnlineStatus(data.connected_users);
+        }
+    };
 
     chatSocket.onclose = function () {
         console.log("WebSocket connection closed.");
@@ -673,6 +679,26 @@
             messageInputDom.value = '';
         }
     };
+
+    function updateOnlineStatus(connectedUsers) {
+        // Get all user status indicators
+        const statusIndicators = document.querySelectorAll('.user-status');
+
+        statusIndicators.forEach(indicator => {
+            const username = indicator.getAttribute('data-username');
+            const isOnline = connectedUsers.includes(username);
+
+            // Update status icon
+            indicator.classList.remove('chat-online', 'chat-offline');
+            indicator.classList.add(isOnline ? 'chat-online' : 'chat-offline');
+
+            // Update status text
+            const statusText = indicator.nextElementSibling;
+            if (statusText) {
+                statusText.textContent = isOnline ? 'Online' : 'Offline';
+            }
+        });
+    }
 </script>
 
 </html>

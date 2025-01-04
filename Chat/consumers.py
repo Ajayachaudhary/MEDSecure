@@ -7,16 +7,47 @@ import base64
 from django.core.files.base import ContentFile
 
 class ChatConsumer(AsyncWebsocketConsumer):
+    # Class variable to track connected users
+    connected_users = set()
+
     async def connect(self):
         self.room_name = self.scope["url_route"]["kwargs"]["room_name"]
         self.room_group_name = f"chat_{self.room_name}"
         self.user = self.scope["user"]
 
+        # Add user to connected users set
+        ChatConsumer.connected_users.add(self.user.username)
+
+        # Join room group
         await self.channel_layer.group_add(self.room_group_name, self.channel_name)
         await self.accept()
 
+        # Broadcast updated user list to all connected clients
+        await self.broadcast_user_status()
+
     async def disconnect(self, close_code):
+        # Remove user from connected users set
+        ChatConsumer.connected_users.discard(self.user.username)
+
+        # Broadcast updated user list
+        await self.broadcast_user_status()
+
         await self.channel_layer.group_discard(self.room_group_name, self.channel_name)
+
+    async def broadcast_user_status(self):
+        await self.channel_layer.group_send(
+            self.room_group_name,
+            {
+                "type": "user_list",
+                "connected_users": list(ChatConsumer.connected_users)
+            }
+        )
+
+    async def user_list(self, event):
+        await self.send(text_data=json.dumps({
+            "type": "user_list",
+            "connected_users": event["connected_users"]
+        }))
 
     async def receive(self, text_data):
         data = json.loads(text_data)
