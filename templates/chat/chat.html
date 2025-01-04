@@ -58,6 +58,18 @@
         .border-top {
             border-top: 1px solid #dee2e6 !important;
         }
+
+        .gap-2 {
+            gap: 0.5rem !important;
+        }
+
+        .position-relative {
+            position: relative !important;
+        }
+
+        .position-absolute {
+            position: absolute !important;
+        }
     </style>
 </head>
 
@@ -194,9 +206,21 @@
                         </div>
 
                         <div class="flex-grow-0 py-3 px-4 border-top">
+                            <div id="image-preview" style="display: none; margin-bottom: 10px;">
+                                <div id="preview-container" class="d-flex flex-wrap gap-2">
+                                    <!-- Preview images will be inserted here -->
+                                </div>
+                            </div>
                             <div class="input-group">
-                                <input id="chat-message-input" type="text" class="form-control"
-                                    placeholder="Type your message">
+                                <input id="chat-message-input" type="text" class="form-control" placeholder="Type your message">
+                                <div class="input-group-append">
+                                    <label for="file-upload" class="btn btn-outline-secondary">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-paperclip" viewBox="0 0 16 16">
+                                            <path d="M4.5 3a2.5 2.5 0 0 1 5 0v9a1.5 1.5 0 0 1-3 0V5a.5.5 0 0 1 1 0v7a.5.5 0 0 0 1 0V3a1.5 1.5 0 1 0-3 0v9a2.5 2.5 0 0 0 5 0V5a.5.5 0 0 1 1 0v7a3.5 3.5 0 1 1-7 0z"/>
+                                        </svg>
+                                    </label>
+                                    <input type="file" id="file-upload" accept="image/*" multiple style="display: none;">
+                                </div>
                                 <button class="btn btn-primary" id="chat-message-submit">Send</button>
                             </div>
                         </div>
@@ -221,6 +245,7 @@
         + '/'
     );
 
+    console.log(room_name);
     chatSocket.onopen = function () {
         console.log("WebSocket connection established.");
     };
@@ -255,7 +280,9 @@
             </div>
             <div class="flex-shrink-1 bg-light rounded py-2 px-3 ${isCurrentUser ? 'mr-3' : 'ml-3'}">
                 ${isCurrentUser ? '' : `<div class="font-weight-bold mb-1">${sender}</div>`}
-                ${messageContent}
+                ${data.message.type === 'image'
+                    ? `<img src="${messageContent}" class="img-fluid" style="max-width: 300px;" alt="Uploaded image">`
+                    : messageContent}
             </div>
         `;
 
@@ -277,15 +304,87 @@
         console.error("WebSocket error:", error);
     };
 
-    document.querySelector('#chat-message-submit').onclick = function (e) {
+    let selectedImages = [];
+
+    document.getElementById('file-upload').addEventListener('change', function(e) {
+        const files = Array.from(e.target.files);
+        const previewContainer = document.getElementById('preview-container');
+
+        files.forEach(file => {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const imageContainer = document.createElement('div');
+                imageContainer.className = 'position-relative d-inline-block m-2';
+
+                const img = document.createElement('img');
+                img.src = e.target.result;
+                img.style.maxWidth = '150px';
+                img.style.maxHeight = '150px';
+                img.className = 'mr-2';
+
+                const removeBtn = document.createElement('button');
+                removeBtn.className = 'btn btn-sm btn-danger position-absolute';
+                removeBtn.innerHTML = '×';
+                removeBtn.style.top = '0';
+                removeBtn.style.right = '0';
+
+                imageContainer.appendChild(img);
+                imageContainer.appendChild(removeBtn);
+                previewContainer.appendChild(imageContainer);
+
+                selectedImages.push({
+                    container: imageContainer,
+                    data: e.target.result
+                });
+
+                removeBtn.onclick = function() {
+                    const index = selectedImages.findIndex(img => img.container === imageContainer);
+                    if (index > -1) {
+                        selectedImages.splice(index, 1);
+                        imageContainer.remove();
+                    }
+                    if (selectedImages.length === 0) {
+                        document.getElementById('image-preview').style.display = 'none';
+                    }
+                };
+            };
+            reader.readAsDataURL(file);
+        });
+
+        document.getElementById('image-preview').style.display = 'block';
+    });
+
+    document.querySelector('#chat-message-submit').onclick = function(e) {
         const messageInputDom = document.querySelector('#chat-message-input');
         const message = messageInputDom.value;
-        chatSocket.send(JSON.stringify({
-            'message': message,
-            'room_name': "{{other_user_name|escapejs}}",
-            'sender': "{{current_user}}"
-        }));
-        messageInputDom.value = '';
+
+        // Send images if any are selected
+        selectedImages.forEach(img => {
+            chatSocket.send(JSON.stringify({
+                'message': img.data,
+                'receiver': "{{other_user_name|escapejs}}",
+                'sender': "{{current_user}}",
+                'type': 'image'
+            }));
+        });
+
+        // Clear image preview
+        if (selectedImages.length > 0) {
+            selectedImages = [];
+            document.getElementById('preview-container').innerHTML = '';
+            document.getElementById('image-preview').style.display = 'none';
+            document.getElementById('file-upload').value = '';
+        }
+
+        // Send text message if any
+        if (message) {
+            chatSocket.send(JSON.stringify({
+                'message': message,
+                'receiver': "{{other_user_name|escapejs}}",
+                'sender': "{{current_user}}"
+            }));
+            messageInputDom.value = '';
+        }
     };
 </script>
 
