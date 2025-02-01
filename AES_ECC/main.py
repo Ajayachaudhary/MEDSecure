@@ -88,37 +88,51 @@ def decrypt_image(encrypted_bytes, key):
     return decrypted_data
 
 
-def main ():
-    print(type(curve))
-    # key = "9e3f1a6039b70ac853fb3949883c0cac"
-    # private_key = 6938227033753900972488869560043356740747013013967433652901998425138991487855
-    # public_key = (18978333441288833782926241136669041791189032080772352147125050398549113838242, 4574019226635624308158902747633238879561901950062217090244646744259582877871)
-    
-    # # Load image
-    # image_array, image_bytes = load_image('images/test.png')
-    
-    # # Encrypt and save
-    # encrypted_data = encrypt_image(image_bytes, key = bytes.fromhex(key))
-    # # print("Key:", key)
-    # Cm1, Cm2, k , i = encrypt_key(curve,G, public_key, key )
-    # binaray_key = to_binary(Cm1) + to_binary(Cm2) + to_binary(k) + to_binary(i)
-    # stegno_data = embed_to_lsb(encrypted_data, binaray_key)
-    # save_encrypted_image(stegno_data, image_array.shape)
+def encrypt_and_hide_key(image_path, aes_key_hex, public_key, curve, G):
+    #Load Image
+    image_array, image_bytes = load_image(image_path)
 
-    # # Decrypt and save
-    # # extract key and reset lsb bit
-    # Cm11, Cm22, k1, i1, Stegno_data_1 = extract_key_from_lsb(stegno_data)
+    #Encrypt image
+    encrypted_data = encrypt_image(image_bytes, key= bytes.fromhex(aes_key_hex))
 
-    # AES_key = hex(decryption_key(curve, private_key, Cm11, Cm22, k1 , i1))[2:]
+    #Encrypt Aes key using ECC
+    Cm1 , Cm2, k, i = encrypt_key(curve, G, public_key, aes_key_hex)
+    binary_key = to_binary(Cm1) + to_binary(Cm2) + to_binary(k) + to_binary(i)
 
-    # # print("After decrytpion:", AES_key)
-    # # if (Cm11 == Cm1 and Cm22 == Cm2 and k1 == k and i1 == i):
-    # #     print("Key exchange successful")
-    # # else:
-    # #     raise ValueError("Error")
-    # decrypted_data = decrypt_image(Stegno_data_1, bytes.fromhex(AES_key))
+    # Embed encyrpted key into LSB of the Encrypte image
+    stegano_data = embed_to_lsb(encrypted_data, binary_key)
 
-    # save_decrypted_image(decrypted_data, image_array.shape)
+    # Save encrypted image
 
-if __name__ == "__main__":
-    main()
+    save_encrypted_image(stegano_data, image_array.shape)
+
+    return stegano_data, image_array.shape
+
+def extract_and_decrypt(stegano_data, private_key, curve):
+    # Extract AES_key 
+    Cm11, Cm22, k1, i1 , stegano_data_1 = extract_key_from_lsb(stegano_data)
+
+    # Decrypt AES key 
+    aes_key = hex(decryption_key(curve, private_key, Cm11, Cm22, k1 , i1))[2:]
+
+    # Decrypt image
+    decrypted_Data = decrypt_image(stegano_data_1, bytes.fromhex(aes_key) )
+
+    return decrypted_Data
+
+
+key = "9e3f1a6039b70ac853fb3949883c0cac"
+private_key = 6938227033753900972488869560043356740747013013967433652901998425138991487855
+public_key = (
+    18978333441288833782926241136669041791189032080772352147125050398549113838242,
+    4574019226635624308158902747633238879561901950062217090244646744259582877871
+)
+
+# Encryption and embedding
+stegno_data, image_shape = encrypt_and_hide_key('images/wall.jpg', key, public_key, curve, G)
+
+# Decryption and extraction
+decrypted_data = extract_and_decrypt(stegno_data, private_key, curve)
+
+# Save decrypted image
+save_decrypted_image(decrypted_data, image_shape)

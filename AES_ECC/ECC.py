@@ -107,7 +107,7 @@ def decryption_key(curve, private_key, CiText1, CiText2, k, i):
 # print("AES key", generate_AES_key())
 
 curve = EllipticCurve(a, b, p)
-print(curve)
+# print(curve)
 # # Example usage
 # aes_key = generate_AES_key()
 # print("Generated_AES_key:", aes_key)
