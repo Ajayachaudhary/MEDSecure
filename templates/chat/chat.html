@@ -461,9 +461,11 @@
                                             {{ message.content }}
                                         {% endif %}
                                         {% if message.image %}
-                                            <div class="mt-2">
-                                                <img src="{{ message.image.url }}" class="img-fluid" style="max-width: 300px;" alt="Shared image">
-                                            </div>
+											<div class="mt-2">
+												<a href="{{ message.image.url }}" download class="btn btn-outline-secondary btn-sm">
+													<i class="fas fa-download mr-1"></i>Download
+												</a>
+											</div>
                                         {% endif %}
                                     </div>
                                 </div>

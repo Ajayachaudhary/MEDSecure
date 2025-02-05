@@ -3,17 +3,17 @@ from AES_Decrypt import decrypt_block, unpad
 import numpy as np
 from PIL import Image
 import os
-from ECC import encrypt_key, decryption_key, curve, G
+from ECC import encrypt_key, decryption_key, curve, G, generate_AES_key
 from stegano import embed_to_lsb, extract_key_from_lsb, to_binary
 
 
 def save_encrypted_image(encrypted_data, original_shape, output_path='images/test_encrypt_1.jpg'):
     """Saves the encrypted image with proper dimensioning"""
     height, width = original_shape
-    
+
     # Convert encrypted data to numpy array
     encrypted_array = np.frombuffer(encrypted_data, dtype=np.uint8)
-    
+
     # Ensure the array is the correct size
     expected_size = height * width
     if len(encrypted_array) < expected_size:
@@ -22,7 +22,7 @@ def save_encrypted_image(encrypted_data, original_shape, output_path='images/tes
         encrypted_array = np.concatenate([encrypted_array, padding])
     elif len(encrypted_array) > expected_size:
         encrypted_array = encrypted_array[:expected_size]
-    
+
     # Reshape and save
     encrypted_image = encrypted_array.reshape(height, width)
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
@@ -35,7 +35,7 @@ def save_decrypted_image(decrypted_data, original_shape, original_image=None, ou
 
     # Convert decrypted data to numpy array
     decrypted_array = np.frombuffer(decrypted_data, dtype=np.uint8)
-    
+
     # Ensure the array is the correct size
     expected_size = height * width
     if len(decrypted_array) < expected_size:
@@ -43,7 +43,7 @@ def save_decrypted_image(decrypted_data, original_shape, original_image=None, ou
         decrypted_array = np.concatenate([decrypted_array, padding])
     elif len(decrypted_array) > expected_size:
         decrypted_array = decrypted_array[:expected_size]
-    
+
     # Reshape to grayscale image
     decrypted_image_gray = decrypted_array.reshape(height, width)
 
@@ -79,7 +79,7 @@ def decrypt_image(encrypted_bytes, key):
     blocks = split_blocks(encrypted_bytes)
     decrypted_blocks = [decrypt_block(block, key_matrices) for block in blocks]
     decrypted_data = b''.join(decrypted_blocks)
-    
+
     try:
         decrypted_data = unpad(decrypted_data)  # Remove padding if present
     except ValueError:
@@ -109,10 +109,10 @@ def encrypt_and_hide_key(image_path, aes_key_hex, public_key, curve, G):
     return stegano_data, image_array.shape
 
 def extract_and_decrypt(stegano_data, private_key, curve):
-    # Extract AES_key 
+    # Extract AES_key
     Cm11, Cm22, k1, i1 , stegano_data_1 = extract_key_from_lsb(stegano_data)
 
-    # Decrypt AES key 
+    # Decrypt AES key
     aes_key = hex(decryption_key(curve, private_key, Cm11, Cm22, k1 , i1))[2:]
 
     # Decrypt image
@@ -121,18 +121,18 @@ def extract_and_decrypt(stegano_data, private_key, curve):
     return decrypted_Data
 
 
-key = "9e3f1a6039b70ac853fb3949883c0cac"
-private_key = 6938227033753900972488869560043356740747013013967433652901998425138991487855
+
+private_key = 6938227033753900972488869560043356740747013013967433652901998425138991487855 #extract from server cache or browser cache
 public_key = (
     18978333441288833782926241136669041791189032080772352147125050398549113838242,
     4574019226635624308158902747633238879561901950062217090244646744259582877871
-)
+) #Extract from database
 
-# Encryption and embedding
-stegno_data, image_shape = encrypt_and_hide_key('images/wall.jpg', key, public_key, curve, G)
+# Encryption and embedding, Call this function while sending the image
+stegno_data, image_shape = encrypt_and_hide_key('images/wall.jpg', generate_AES_key(), public_key, curve, G)
 
-# Decryption and extraction
+# Decryption and extraction, Call this function while
 decrypted_data = extract_and_decrypt(stegno_data, private_key, curve)
 
-# Save decrypted image
+# Save decrypted image, This function should called inside  extract_and_decrypt
 save_decrypted_image(decrypted_data, image_shape)
