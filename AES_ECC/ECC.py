@@ -50,7 +50,7 @@ G = (0x2569d3abc50d2cdae7b3e5a8cf3ebcee5a75fad41d914534c33edf07753f3a9c,
      #0x4FE342E2FE1A7F9B8EE7EB4A7C0F9E162CB8B8E2F14E79A8943C3FE0B5C60180)
 
 def generate_AES_key():
-    return secrets.token_hex(16)
+    return secrets.token_hex(16) # key = "9e3f1a6039b70ac853fb3949883c0cac"
 
 # # Key generation
 # private_key = secrets.randbelow(p)
@@ -105,45 +105,46 @@ def decryption_key(curve, private_key, CiText1, CiText2, k, i):
     return aes_key
 
 # print("AES key", generate_AES_key())
-
 curve = EllipticCurve(a, b, p)
-print(curve)
-# # Example usage
-# aes_key = generate_AES_key()
-# print("Generated_AES_key:", aes_key)
 
-# # Encrypt the AES key
-# start_encrypt = time.time()
-# Cm1, Cm2, k, i = encrypt_key(curve, G, public_key, aes_key)
-# end_encrypt = time.time()
+if __name__ == "__main__":
+    pass
+    # # Example usage
+    # aes_key = generate_AES_key()
+    # print("Generated_AES_key:", aes_key)
 
-# print("Cm1:", Cm1)
-# print("Cm2",Cm2)
-# print(f"Encryption time: {end_encrypt - start_encrypt:.6f} seconds")
+    # # Encrypt the AES key
+    # start_encrypt = time.time()
+    # Cm1, Cm2, k, i = encrypt_key(curve, G, public_key, aes_key)
+    # end_encrypt = time.time()
 
-# # Decrypt the AES key
-# start_decrypt = time.time()
-# decrypted_key = decryption_key(curve, private_key, Cm1, Cm2, k, i)
-# end_decrypt = time.time()
-# print("Decrypted AES Key:", hex(decrypted_key)[2:])
-# print(f"Decryption time : {end_decrypt - start_decrypt:.6f} seconds")
+    # print("Cm1:", Cm1)
+    # print("Cm2",Cm2)
+    # print(f"Encryption time: {end_encrypt - start_encrypt:.6f} seconds")
 
-# # Verify correctness
-# assert aes_key == hex(decrypted_key)[2:], "Decryption failed!"
-# print("Encryption and decryption successful!")
+    # # Decrypt the AES key
+    # start_decrypt = time.time()
+    # decrypted_key = decryption_key(curve, private_key, Cm1, Cm2, k, i)
+    # end_decrypt = time.time()
+    # print("Decrypted AES Key:", hex(decrypted_key)[2:])
+    # print(f"Decryption time : {end_decrypt - start_decrypt:.6f} seconds")
+
+    # # Verify correctness
+    # assert aes_key == hex(decrypted_key)[2:], "Decryption failed!"
+    # print("Encryption and decryption successful!")
 
 
-#     def montgomery_scalar_multiplication(self, k, P):
-#         # Montgomery Ladder implementation for scalar multiplication
-#         R0 = None  # Point at infinity
-#         R1 = P
+    #     def montgomery_scalar_multiplication(self, k, P):
+    #         # Montgomery Ladder implementation for scalar multiplication
+    #         R0 = None  # Point at infinity
+    #         R1 = P
 
-#         for bit in reversed(bin(k)[2:]):
-#             if bit == '0':
-#                 R1 = self.PointAddition(R0, R1)
-#                 R0 = self.PointAddition(R0, R0)
-#             else:
-#                 R0 = self.PointAddition(R0, R1)
-#                 R1 = self.PointAddition(R1, R1)
+    #         for bit in reversed(bin(k)[2:]):
+    #             if bit == '0':
+    #                 R1 = self.PointAddition(R0, R1)
+    #                 R0 = self.PointAddition(R0, R0)
+    #             else:
+    #                 R0 = self.PointAddition(R0, R1)
+    #                 R1 = self.PointAddition(R1, R1)
 
-#         return R0
+    #         return R0

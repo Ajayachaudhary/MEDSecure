@@ -1,26 +1,25 @@
 def embed_to_lsb(encrypted_data, encrypted_binary_key):
-
     encrypted_bytes = bytearray(encrypted_data)
-    encrypted_binary_key = encrypted_binary_key + '1111111111111110' # delimiter to mark the end
+    encrypted_binary_key = encrypted_binary_key + '1111111111111110'  # delimiter to mark the end
 
-    if(len(encrypted_binary_key)) > len(encrypted_bytes):
-        raise ValueError("Not enough spaec in ecrypted data to embed!")
+    if len(encrypted_binary_key) > len(encrypted_bytes):
+        raise ValueError("Not enough space in encrypted data to embed!")
 
     bit_index = 0
     for byte_index in range(len(encrypted_bytes)):
         if bit_index < len(encrypted_binary_key):
             encrypted_bytes[byte_index] = (encrypted_bytes[byte_index] & 0xFE) | int(encrypted_binary_key[bit_index])
-            bit_index +=1
+            bit_index += 1
 
-    return  bytes(encrypted_bytes)
+    return bytes(encrypted_bytes)
 
 def extract_key_from_lsb(stegano_encrypted_data):
     """Extract the binary encrypted AES key from the stegano encrypted data"""
     encrypted_bytes = bytearray(stegano_encrypted_data)
     extracted_binary_key = ""
 
-    for byte_inex in range(1600):
-        extracted_binary_key += str(encrypted_bytes[byte_inex] & 1)
+    for byte_index in range(1600):
+        extracted_binary_key += str(encrypted_bytes[byte_index] & 1)
 
     delimiter = '1111111111111110'
     extracted_binary_key = extracted_binary_key[:extracted_binary_key.find(delimiter)]
