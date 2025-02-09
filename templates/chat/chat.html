@@ -627,7 +627,9 @@
 
             // Send images if any are selected
             selectedImages.forEach(img => {
+                let uniqId = uuidv4(); // Generate a unique ID
                 chatSocket.send(JSON.stringify({
+                    'id': uniqId,
                     'message': img.data,
                     'receiver': "{{other_user_name|escapejs}}",
                     'sender': "{{current_user}}",
@@ -639,6 +641,7 @@
                     url: '/chat/encrypt_image/', // Ensure the trailing slash is included
                     type: 'POST',
                     data: {
+                        id: uniqId,
                         image: img.data
                     },
                     success: function (response) {
@@ -681,6 +684,15 @@
                 if (statusText.length) {
                     statusText.text(isOnline ? 'Online' : 'Offline');
                 }
+            });
+        }
+
+        // Function to generate a unique ID
+        function uuidv4() {
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+                const r = Math.random() * 16 | 0,
+                    v = c === 'x' ? r : (r & 0x3 | 0x8);
+                return v.toString(16);
             });
         }
     });

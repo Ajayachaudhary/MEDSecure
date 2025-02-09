@@ -1,6 +1,6 @@
 from django.shortcuts import render, get_object_or_404, redirect, HttpResponse
 from django.contrib.auth.models import User
-from .models import Mesaage
+from .models import Mesaage, EncryptedImage
 from django.db.models import Q
 from django.views.decorators.csrf import csrf_exempt
 import base64
@@ -9,6 +9,7 @@ from django.http import JsonResponse
 from AES_ECC.main import encrypt_and_hide_key, extract_and_decrypt
 from AES_ECC.ECC import curve, G
 import os
+import uuid
 
 def room(request, user, send_to):
     loggedUser = request.user
@@ -98,6 +99,7 @@ def encrypt_image(request):
     if request.method == 'POST':
         try:
             image_data = request.POST.get('image')  # Get Base64 string
+            unique_id = request.POST.get('id')  # Get unique ID
             if not image_data:
                 return JsonResponse({"error": "No image data received"}, status=400)
 
@@ -105,8 +107,11 @@ def encrypt_image(request):
             format, imgstr = image_data.split(';base64,')
             ext = format.split('/')[-1]  # Extract image format (png, jpg, etc.)
 
+            # Generate a unique name for the image
+            unique_filename = f'chat_image_{uuid.uuid4()}.{ext}'
+
             # Decode Base64 and create Django ContentFile
-            decoded_image = ContentFile(base64.b64decode(imgstr), name=f'chat_image.{ext}')
+            decoded_image = ContentFile(base64.b64decode(imgstr), name=unique_filename)
             print(f"Decoded image name: {decoded_image.name}")
 
             # Ensure the images directory exists
@@ -127,6 +132,10 @@ def encrypt_image(request):
                 os.makedirs(encrypted_images_dir)
             print(f"Encrypted images directory: {encrypted_images_dir}")
 
+            # Generate unique names for the encrypted and decrypted images
+            encrypted_filename = f'{uuid.uuid4()}_encrypted.png'
+            decrypted_filename = f'{uuid.uuid4()}_decrypted.png'
+
             # Encrypt the image
             encrypted_path, image_shape = encrypt_and_hide_key(
                 image_path,
@@ -134,17 +143,24 @@ def encrypt_image(request):
                 public_key,
                 curve,
                 G,
-                os.path.join(encrypted_images_dir, f'{decoded_image.name}_encrypted.png')
+                os.path.join(encrypted_images_dir, encrypted_filename)
             )
             print(f"Encrypted image saved at: {encrypted_path}")
 
+            # Save the encrypted image to the database with a relative path
+            relative_encrypted_path = f'encrypted_images/{encrypted_filename}'
+            EncryptedImage.objects.create(
+                id=unique_id,
+                original_image_name=decoded_image.name,
+                encrypted_image_path=relative_encrypted_path
+            )
             # Decrypt the image (if needed)
-            # decrypted_path = extract_and_decrypt(
-            #     encrypted_path,
-            #     private_key,
-            #     curve,
-            #     os.path.join(encrypted_images_dir, f'{decoded_image.name}_decrypted.png')
-            # )
+            decrypted_path = extract_and_decrypt(
+                encrypted_path,
+                private_key,
+                curve,
+                os.path.join(encrypted_images_dir, decrypted_filename)
+            )
             print(f"Decrypted image saved at: {decrypted_path}")
 
             return JsonResponse({"success": True, "message": "Image processed successfully"})
