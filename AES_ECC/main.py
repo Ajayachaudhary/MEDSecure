@@ -1,19 +1,19 @@
-from AES_Encrypt import split_blocks, expand_key, encrypt_block, pad
-from AES_Decrypt import decrypt_block, unpad
+from .AES_Encrypt import split_blocks, expand_key, encrypt_block, pad
+from .AES_Decrypt import decrypt_block, unpad
 import numpy as np
 from PIL import Image
 import os
-from ECC import encrypt_key, decryption_key, curve, G
-from stegano import embed_to_lsb, extract_key_from_lsb, to_binary
+from .ECC import encrypt_key, decryption_key, curve, G
+from .stegano import embed_to_lsb, extract_key_from_lsb, to_binary
 
 
 # def save_encrypted_image(encrypted_data, original_shape, output_path='images/test_encrypt_1.jpg'):
 #     """Saves the encrypted image with proper dimensioning"""
 #     height, width, channels = original_shape
-    
+
 #     # Convert encrypted data to numpy array
 #     encrypted_array = np.frombuffer(encrypted_data, dtype=np.uint8)
-    
+
 #     # Ensure the array is the correct size
 #     expected_size = height * width * channels
 #     if len(encrypted_array) < expected_size:
@@ -21,7 +21,7 @@ from stegano import embed_to_lsb, extract_key_from_lsb, to_binary
 #         encrypted_array = np.concatenate([encrypted_array, padding])
 #     elif len(encrypted_array) > expected_size:
 #         encrypted_array = encrypted_array[:expected_size]
-    
+
 #     # Reshape and save
 #     encrypted_image = encrypted_array.reshape(height, width, channels)
 #     os.makedirs(os.path.dirname(output_path), exist_ok=True)
@@ -32,31 +32,31 @@ from stegano import embed_to_lsb, extract_key_from_lsb, to_binary
 def save_encrypted_image(encrypted_data, original_shape, output_path='images/test_encrypt_1.png'):
     """Saves the encrypted image with proper dimensioning"""
     height, width, channels = original_shape
-    
+
     # Convert encrypted data to numpy array
     encrypted_array = np.frombuffer(encrypted_data, dtype=np.uint8)
-    
+
     # Ensure the array is the correct size
     expected_size = height * width * channels
     if len(encrypted_array) != expected_size:
         print(f"Warning: Encrypted data size ({len(encrypted_array)}) does not match expected size ({expected_size})")
-    
+
     # Reshape and save
     encrypted_array = encrypted_array[:expected_size]  # Ensure correct size
     print("lenght of encyrpted array after ensure correct size", len(encrypted_array))
     encrypted_image = encrypted_array.reshape(height, width, channels)
-    
+
     # Save in RGB mode
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     Image.fromarray(encrypted_image, mode="RGB").save(output_path)
-    
+
     print(f"Encrypted image saved as {output_path}")
 
 def save_decrypted_image(decrypted_data, original_shape, output_path='images/test_decrypt_1.png'):
     """Saves the decrypted image in RGB format"""
     height, width, channels = original_shape
     expected_size = height * width * channels
-    
+
     # Convert decrypted data to numpy array and unshuffle
     decrypted_array = np.frombuffer(decrypted_data, dtype=np.uint8)
     decrypted_array = decrypted_array[:expected_size]  # Ensure correct size
@@ -65,7 +65,7 @@ def save_decrypted_image(decrypted_data, original_shape, output_path='images/tes
     np.random.shuffle(shuffle_indices)
     unshuffled_array = np.zeros_like(decrypted_array)
     unshuffled_array[shuffle_indices] = decrypted_array
-    
+
     # Reshape to RGB image
     decrypted_image = unshuffled_array.reshape(height, width, channels)
     Image.fromarray(decrypted_image).save(output_path)
@@ -76,12 +76,12 @@ def load_image(image_path):
     """Loads an image, converts to RGB, and returns as a byte array."""
     image = Image.open(image_path).convert('RGB')  # Convert to RGB
     image_array = np.array(image)
-    
+
     # Flatten and shuffle the image data
     flattened = image_array.flatten()
     np.random.seed(42)  # Use a fixed seed for reproducibility
     np.random.shuffle(flattened)
-    
+
     return image_array.shape, flattened.tobytes()
 
 def encrypt_image(image_bytes, key):
@@ -97,7 +97,7 @@ def decrypt_image(encrypted_bytes, key):
     blocks = split_blocks(encrypted_bytes, require_padding=False)
     decrypted_blocks = [decrypt_block(block, key_matrices) for block in blocks]
     decrypted_data = b''.join(decrypted_blocks)
-    
+
     try:
         decrypted_data = unpad(decrypted_data)  # Remove padding if present
     except ValueError:
@@ -107,14 +107,14 @@ def decrypt_image(encrypted_bytes, key):
 
 
 # def main ():
- 
+
 #     key = "9e3f1a6039b70ac853fb3949883c0cac"
 #     private_key = 6938227033753900972488869560043356740747013013967433652901998425138991487855
 #     public_key = (18978333441288833782926241136669041791189032080772352147125050398549113838242, 4574019226635624308158902747633238879561901950062217090244646744259582877871)
-    
+
 #     # Load image
 #     image_array, image_bytes = load_image('images/test.png')
-    
+
 #     # Encrypt and save
 #     encrypted_data = encrypt_image(image_bytes, key = bytes.fromhex(key))
 #     # print("Key:", key)
@@ -155,7 +155,6 @@ def encrypt_and_hide_key(input_path, aes_key_hex, public_key, curve, G, output_p
 
     # Save encrypted image
     save_encrypted_image(stegano_data, image_shape, output_path)
-    
     return output_path, image_shape
 
 def extract_and_decrypt(encrypted_image_path, private_key, curve, output_path='images/decrypted.png'):
@@ -173,7 +172,7 @@ def extract_and_decrypt(encrypted_image_path, private_key, curve, output_path='i
     # Decrypt image data
     decrypted_data = decrypt_image(stegano_data_1, bytes.fromhex(aes_key))
     save_decrypted_image(decrypted_data, image_shape, output_path)
-    
+
     return output_path
 
 # Main execution
@@ -185,19 +184,19 @@ public_key = (
 )
 
 # Encrypt image
-encrypted_path, image_shape = encrypt_and_hide_key(
-    './images/medical.png', 
-    key, 
-    public_key, 
-    curve, 
-    G,
-    './images/medical_encrypted.png'
-)
+# encrypted_path, image_shape = encrypt_and_hide_key(
+#     './images/medical.png',
+#     key,
+#     public_key,
+#     curve,
+#     G,
+#     './images/medical_encrypted.png'
+# )
 
 # Decrypt image
-decrypted_path = extract_and_decrypt(
-    encrypted_path,
-    private_key, 
-    curve,
-    './images/medical_decrypted.png'
-)
+# decrypted_path = extract_and_decrypt(
+#     encrypted_path,
+#     private_key,
+#     curve,
+#     './images/medical_decrypted.png'
+# )

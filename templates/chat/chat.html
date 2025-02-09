@@ -525,180 +525,165 @@
 </body>
 
 <script>
-    const room_name = "{{ room_name|escapejs }}";
-    const chatSocket = new WebSocket(
-        'ws://'
-        + window.location.host
-        + '/ws/chat/'
-        + room_name
-        + '/'
-    );
+    $(document).ready(function () {
+        const room_name = "{{ room_name|escapejs }}";
+        const chatSocket = new WebSocket(
+            'ws://' + window.location.host + '/ws/chat/' + room_name + '/'
+        );
 
-    console.log(room_name);
-    chatSocket.onopen = function () {
-        console.log("WebSocket connection established.");
-    };
+        console.log(room_name);
 
-    chatSocket.onmessage = function (event) {
-        console.log("Received message:", event.data);
+        chatSocket.onopen = function () {
+            console.log("WebSocket connection established.");
+        };
 
-        // Parse the JSON data
-        const data = JSON.parse(event.data);
+        chatSocket.onmessage = function (event) {
+            console.log("Received message:", event.data);
 
-        // Check if the message object is present
-        if (data.message) {
-            const messageContent = data.message.message;
-            const sender = data.message.sender;
+            // Parse the JSON data
+            const data = JSON.parse(event.data);
 
-            // Determine whether the sender is the current user or the other user
-            const isCurrentUser = sender === "{{ current_user }}";
+            if (data.message) {
+                const messageContent = data.message.message;
+                const sender = data.message.sender;
+                const isCurrentUser = sender === "{{ current_user }}";
 
-            // Create the message element
-            const messageElement = document.createElement('div');
-            messageElement.classList.add('pb-4');
-            messageElement.classList.add(isCurrentUser ? 'chat-message-right' : 'chat-message-left');
+                const messageElement = $(`
+                    <div class="pb-4 ${isCurrentUser ? 'chat-message-right' : 'chat-message-left'}">
+                        <div>
+                            <img src="${isCurrentUser ? 'https://bootdey.com/img/Content/avatar/avatar1.png' : 'https://bootdey.com/img/Content/avatar/avatar3.png'}"
+                                class="rounded-circle mr-1" alt="${sender}" width="40" height="40">
+                            <div class="text-muted small text-nowrap mt-2">
+                                ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })}
+                            </div>
+                        </div>
+                        <div class="flex-shrink-1 bg-light rounded py-2 px-3 ${isCurrentUser ? 'mr-3' : 'ml-3'}">
+                            ${isCurrentUser ? '' : `<div class="font-weight-bold mb-1">${sender}</div>`}
+                            ${data.message.type === 'image'
+                                ? `<img src="${messageContent}" class="img-fluid" style="max-width: 300px;" alt="Uploaded image">`
+                                : messageContent}
+                        </div>
+                    </div>
+                `);
 
-            // Build the message content
-            messageElement.innerHTML = `
-            <div>
-                <img src="${isCurrentUser ? 'https://bootdey.com/img/Content/avatar/avatar1.png' : 'https://bootdey.com/img/Content/avatar/avatar3.png'}"
-                    class="rounded-circle mr-1" alt="${sender}" width="40" height="40">
-                <div class="text-muted small text-nowrap mt-2">
-                    ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })}
-                </div>
-            </div>
-            <div class="flex-shrink-1 bg-light rounded py-2 px-3 ${isCurrentUser ? 'mr-3' : 'ml-3'}">
-                ${isCurrentUser ? '' : `<div class="font-weight-bold mb-1">${sender}</div>`}
-                ${data.message.type === 'image'
-                    ? `<img src="${messageContent}" class="img-fluid" style="max-width: 300px;" alt="Uploaded image">`
-                    : messageContent}
-            </div>
-        `;
+                $('.chat-messages').append(messageElement);
+                $('.chat-messages').scrollTop($('.chat-messages')[0].scrollHeight);
+            }
 
-            // Append the message to the chat-messages container
-            const messagesContainer = document.querySelector('.chat-messages');
-            messagesContainer.appendChild(messageElement);
+            if (data.type === "user_list") {
+                updateOnlineStatus(data.connected_users);
+            }
+        };
 
-            // Scroll to the bottom of the chat
-            messagesContainer.scrollTop = messagesContainer.scrollHeight;
-        }
+        chatSocket.onclose = function () {
+            console.log("WebSocket connection closed.");
+        };
 
-        if (data.type === "user_list") {
-            // Update online/offline status for all users
-            updateOnlineStatus(data.connected_users);
-        }
-    };
+        chatSocket.onerror = function (error) {
+            console.error("WebSocket error:", error);
+        };
 
-    chatSocket.onclose = function () {
-        console.log("WebSocket connection closed.");
-    };
+        let selectedImages = [];
 
-    chatSocket.onerror = function (error) {
-        console.error("WebSocket error:", error);
-    };
+        $('#file-upload').on('change', function (e) {
+            const files = Array.from(e.target.files);
+            const previewContainer = $('#preview-container');
 
-    let selectedImages = [];
+            files.forEach(file => {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    const imageContainer = $('<div class="position-relative d-inline-block m-2"></div>');
+                    const img = $(`<img src="${e.target.result}" style="max-width: 150px; max-height: 150px;" class="mr-2">`);
+                    const removeBtn = $('<button class="btn btn-sm btn-danger position-absolute" style="top: 0; right: 0;">×</button>');
 
-    document.getElementById('file-upload').addEventListener('change', function(e) {
-        const files = Array.from(e.target.files);
-        const previewContainer = document.getElementById('preview-container');
+                    imageContainer.append(img, removeBtn);
+                    previewContainer.append(imageContainer);
 
-        files.forEach(file => {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const imageContainer = document.createElement('div');
-                imageContainer.className = 'position-relative d-inline-block m-2';
+                    selectedImages.push({
+                        container: imageContainer,
+                        data: e.target.result
+                    });
 
-                const img = document.createElement('img');
-                img.src = e.target.result;
-                img.style.maxWidth = '150px';
-                img.style.maxHeight = '150px';
-                img.className = 'mr-2';
-
-                const removeBtn = document.createElement('button');
-                removeBtn.className = 'btn btn-sm btn-danger position-absolute';
-                removeBtn.innerHTML = '×';
-                removeBtn.style.top = '0';
-                removeBtn.style.right = '0';
-
-                imageContainer.appendChild(img);
-                imageContainer.appendChild(removeBtn);
-                previewContainer.appendChild(imageContainer);
-
-                selectedImages.push({
-                    container: imageContainer,
-                    data: e.target.result
-                });
-
-                removeBtn.onclick = function() {
-                    const index = selectedImages.findIndex(img => img.container === imageContainer);
-                    if (index > -1) {
-                        selectedImages.splice(index, 1);
-                        imageContainer.remove();
-                    }
-                    if (selectedImages.length === 0) {
-                        document.getElementById('image-preview').style.display = 'none';
-                    }
+                    removeBtn.on('click', function () {
+                        const index = selectedImages.findIndex(img => img.container[0] === imageContainer[0]);
+                        if (index > -1) {
+                            selectedImages.splice(index, 1);
+                            imageContainer.remove();
+                        }
+                        if (selectedImages.length === 0) {
+                            $('#image-preview').hide();
+                        }
+                    });
                 };
-            };
-            reader.readAsDataURL(file);
+                reader.readAsDataURL(file);
+            });
+
+            $('#image-preview').show();
         });
 
-        document.getElementById('image-preview').style.display = 'block';
-    });
+        $('#chat-message-submit').on('click', function (e) {
+            const messageInput = $('#chat-message-input');
+            const message = messageInput.val();
 
-    document.querySelector('#chat-message-submit').onclick = function(e) {
-        const messageInputDom = document.querySelector('#chat-message-input');
-        const message = messageInputDom.value;
+            // Send images if any are selected
+            selectedImages.forEach(img => {
+                chatSocket.send(JSON.stringify({
+                    'message': img.data,
+                    'receiver': "{{other_user_name|escapejs}}",
+                    'sender': "{{current_user}}",
+                    'type': 'image'
+                }));
 
-        // Send images if any are selected
-        selectedImages.forEach(img => {
-            chatSocket.send(JSON.stringify({
-                'message': img.data,
-                'receiver': "{{other_user_name|escapejs}}",
-                'sender': "{{current_user}}",
-                'type': 'image'
-            }));
-        });
+                // Send image using AJAX
+                $.ajax({
+                    url: '/chat/encrypt_image/', // Ensure the trailing slash is included
+                    type: 'POST',
+                    data: {
+                        image: img.data
+                    },
+                    success: function (response) {
+                        console.log('Image uploaded successfully:', response);
+                    },
+                    error: function (error) {
+                        console.error('Image upload failed:', error);
+                    }
+                });
+            });
 
-        // Clear image preview
-        if (selectedImages.length > 0) {
-            selectedImages = [];
-            document.getElementById('preview-container').innerHTML = '';
-            document.getElementById('image-preview').style.display = 'none';
-            document.getElementById('file-upload').value = '';
-        }
+            // Clear image preview
+            if (selectedImages.length > 0) {
+                selectedImages = [];
+                $('#preview-container').empty();
+                $('#image-preview').hide();
+                $('#file-upload').val('');
+            }
 
-        // Send text message if any
-        if (message) {
-            chatSocket.send(JSON.stringify({
-                'message': message,
-                'receiver': "{{other_user_name|escapejs}}",
-                'sender': "{{current_user}}"
-            }));
-            messageInputDom.value = '';
-        }
-    };
-
-    function updateOnlineStatus(connectedUsers) {
-        // Get all user status indicators
-        const statusIndicators = document.querySelectorAll('.user-status');
-
-        statusIndicators.forEach(indicator => {
-            const username = indicator.getAttribute('data-username');
-            const isOnline = connectedUsers.includes(username);
-
-            // Update status icon
-            indicator.classList.remove('chat-online', 'chat-offline');
-            indicator.classList.add(isOnline ? 'chat-online' : 'chat-offline');
-
-            // Update status text
-            const statusText = indicator.nextElementSibling;
-            if (statusText) {
-                statusText.textContent = isOnline ? 'Online' : 'Offline';
+            // Send text message if any
+            if (message) {
+                chatSocket.send(JSON.stringify({
+                    'message': message,
+                    'receiver': "{{other_user_name|escapejs}}",
+                    'sender': "{{current_user}}"
+                }));
+                messageInput.val('');
             }
         });
-    }
+
+        function updateOnlineStatus(connectedUsers) {
+            $('.user-status').each(function () {
+                const username = $(this).data('username');
+                const isOnline = connectedUsers.includes(username);
+
+                $(this).removeClass('chat-online chat-offline')
+                    .addClass(isOnline ? 'chat-online' : 'chat-offline');
+
+                const statusText = $(this).next();
+                if (statusText.length) {
+                    statusText.text(isOnline ? 'Online' : 'Offline');
+                }
+            });
+        }
+    });
 </script>
 
 </html>
