@@ -16,17 +16,26 @@ def room(request, user, send_to):
     username = loggedUser.username
 
     if username != user:
-        return render( request, 'chat/chat.html', {'status': 'error', 'message': 'Opps Error!'} )
+        return render(request, 'chat/chat.html', {'status': 'error', 'message': 'Oops Error!'})
 
     is_staff = loggedUser.is_staff
     messages = Mesaage.objects.filter(
-            Q(sender=loggedUser, receiver__username=send_to) |
-            Q(sender__username=send_to, receiver=loggedUser)
-        ).order_by('timestamp')
+        Q(sender=loggedUser, receiver__username=send_to) |
+        Q(sender__username=send_to, receiver=loggedUser)
+    ).order_by('timestamp')
+
+    # Add encrypted image path to each message
+    for message in messages:
+        try:
+            encrypted_image = EncryptedImage.objects.get(id=message.chat_id)
+            message.encrypted_image_path = encrypted_image.encrypted_image_path
+        except EncryptedImage.DoesNotExist:
+            message.encrypted_image_path = None
+
     other_user = messages.exclude(sender=loggedUser).first()
 
     if is_staff:
-        users = User.objects.filter( is_staff=False )
+        users = User.objects.filter(is_staff=False)
         room_name = f'{user}_{send_to}'
         if other_user and other_user.sender.username != send_to:
             context = {
@@ -36,17 +45,17 @@ def room(request, user, send_to):
                 'current_user': user,
                 'other_user_name': send_to,
             }
-            return render( request, 'chat/chat.html', context )
+            return render(request, 'chat/chat.html', context)
 
-        return render( request, 'chat/chat.html', {
-                'messages': messages,
-                'users': users,
-                'current_user': user,
-                'other_user_name': send_to,
-                'room_name': room_name
-            } )
+        return render(request, 'chat/chat.html', {
+            'messages': messages,
+            'users': users,
+            'current_user': user,
+            'other_user_name': send_to,
+            'room_name': room_name
+        })
     else:
-        users = User.objects.filter( is_staff=True )
+        users = User.objects.filter(is_staff=True)
         room_name = f'{send_to}_{user}'
         if other_user and other_user.sender.username != send_to:
             context = {
@@ -56,15 +65,15 @@ def room(request, user, send_to):
                 'current_user': user,
                 'other_user_name': send_to,
             }
-            return render( request, 'chat/chat.html', context )
+            return render(request, 'chat/chat.html', context)
 
-        return render( request, 'chat/chat.html', {
-                'messages': messages,
-                'users': users,
-                'current_user': user,
-                'other_user_name': send_to,
-                'room_name': room_name
-            } )
+        return render(request, 'chat/chat.html', {
+            'messages': messages,
+            'users': users,
+            'current_user': user,
+            'other_user_name': send_to,
+            'room_name': room_name
+        })
 
 def chat_template(request):
     user = request.user
@@ -72,7 +81,7 @@ def chat_template(request):
     is_staff = user.is_staff
 
     if is_staff:
-        users = User.objects.filter( is_staff = False)
+        users = User.objects.filter(is_staff=False)
         context = {
             'status': 'initial',
             'users': users,
@@ -86,7 +95,7 @@ def chat_template(request):
             'current_user': username
         }
 
-    return render( request, 'chat/chat.html', context )
+    return render(request, 'chat/chat.html', context)
 
 @csrf_exempt
 def encrypt_image(request):
@@ -155,15 +164,47 @@ def encrypt_image(request):
                 encrypted_image_path=relative_encrypted_path
             )
             # Decrypt the image (if needed)
-            decrypted_path = extract_and_decrypt(
-                encrypted_path,
-                private_key,
-                curve,
-                os.path.join(encrypted_images_dir, decrypted_filename)
-            )
-            print(f"Decrypted image saved at: {decrypted_path}")
+            # decrypted_path = extract_and_decrypt(
+            #     encrypted_path,
+            #     private_key,
+            #     curve,
+            #     os.path.join(encrypted_images_dir, decrypted_filename)
+            # )
+            # print(f"Decrypted image saved at: {decrypted_path}")
 
             return JsonResponse({"success": True, "message": "Image processed successfully"})
+
+        except Exception as e:
+            print(f"Error: {e}")  # Print the error to the console
+            return JsonResponse({"error": str(e)}, status=500)
+
+    return JsonResponse({"error": "Invalid request method"}, status=405)
+
+@csrf_exempt
+def decrypt_image(request):
+    print("Decrypting image...")
+    if request.method == 'POST':
+        private_key = 6938227033753900972488869560043356740747013013967433652901998425138991487855  # this private, public key should generate at registration time only for doctor. generation of this code is present in ECC.py
+        encrypted_image_path = request.POST.get('encrypted_image_path')
+        if not encrypted_image_path:
+            return JsonResponse({"error": "No encrypted image path provided"}, status=400)
+
+        try:
+            # Decrypt the image
+            encrypted_image_full_path = os.path.join(os.path.dirname(__file__), '../media/', encrypted_image_path)
+            decrypted_filename = f'{uuid.uuid4()}_decrypted.png'
+            decrypted_images_dir = os.path.join(os.path.dirname(__file__), '../media/decrypted_images')
+            if not os.path.exists(decrypted_images_dir):
+                os.makedirs(decrypted_images_dir)
+            decrypted_path = extract_and_decrypt(
+                encrypted_image_full_path,
+                private_key,
+                curve,
+                os.path.join(decrypted_images_dir, decrypted_filename)
+            )
+            print(f"Decrypted image saved at: {decrypted_path}")
+            relative_decrypted_path = f'decrypted_images/{decrypted_filename}'
+            return JsonResponse({"decrypted_image_url": f'/media/{relative_decrypted_path}'})
 
         except Exception as e:
             print(f"Error: {e}")  # Print the error to the console

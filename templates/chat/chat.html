@@ -460,11 +460,16 @@
                                         {% if message.content and message.content != "None" %}
                                             {{ message.content }}
                                         {% endif %}
-                                        {% if message.image %}
+                                        <!-- {% if message.image %}
                                             <div class="mt-2">
                                                 <img src="{{ message.image.url }}" class="img-fluid" style="max-width: 300px;" alt="Shared image">
                                             </div>
-                                        {% endif %}
+                                        {% endif %} -->
+										{% if message.encrypted_image_path %}
+											<div class="mt-2">
+												<button class="btn btn-secondary btn-sm mt-2" onclick="downloadDecryptedImage('{{ message.encrypted_image_path }}')">Download Decrypted Image</button>
+											</div>
+										{% endif %}
                                     </div>
                                 </div>
                                 {% endif %}
@@ -696,6 +701,27 @@
             });
         }
     });
+
+    function downloadDecryptedImage(encryptedImagePath) {
+        $.ajax({
+            url: '/chat/decrypt_image/',
+            type: 'POST',
+            data: {
+                encrypted_image_path: encryptedImagePath
+            },
+            success: function (response) {
+                const link = document.createElement('a');
+                link.href = response.decrypted_image_url;
+                link.download = 'decrypted_image.png';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            },
+            error: function (error) {
+                console.error('Image decryption failed:', error);
+            }
+        });
+    }
 </script>
 
 </html>
