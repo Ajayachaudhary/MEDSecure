@@ -7,7 +7,7 @@ import base64
 from django.core.files.base import ContentFile
 from django.http import JsonResponse
 from AES_ECC.main import encrypt_and_hide_key, extract_and_decrypt
-from AES_ECC.ECC import curve, G
+from AES_ECC.ECC import curve, G, generate_AES_key
 import os
 import uuid
 
@@ -99,7 +99,7 @@ def chat_template(request):
 
 @csrf_exempt
 def encrypt_image(request):
-    key = "9e3f1a6039b70ac853fb3949883c0cac"  # this is aes key generated from generate_AES_key() function in ECC.py, it should generate a new key every time for each image that is going to be sent
+    key = generate_AES_key()  # this is aes key generated from generate_AES_key() function in ECC.py, it should generate a new key every time for each image that is going to be sent
     private_key = 6938227033753900972488869560043356740747013013967433652901998425138991487855  # this private, public key should generate at registration time only for doctor. generation of this code is present in ECC.py
     public_key = (
         18978333441288833782926241136669041791189032080772352147125050398549113838242,
