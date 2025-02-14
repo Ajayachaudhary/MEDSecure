@@ -24,6 +24,11 @@ def extract_key_from_lsb(stegano_encrypted_data):
     delimiter = '1111111111111110'
     extracted_binary_key = extracted_binary_key[:extracted_binary_key.find(delimiter)]
 
+    # for checksum
+    bin_checksum = extracted_binary_key[-8:]
+    extracted_binary_key = extracted_binary_key[:-8]
+    checksum = bin_checksum
+
     #for key i 
     bin_i = extracted_binary_key[-256:]
     extracted_binary_key = extracted_binary_key[:-256]
@@ -46,7 +51,7 @@ def extract_key_from_lsb(stegano_encrypted_data):
 
     # encrypted_bytes = reset_lsb_of_stegno_image(encrypted_bytes)
 
-    return Cm1,Cm2, k, i, bytes(encrypted_bytes)
+    return Cm1,Cm2, k, i,checksum,  bytes(encrypted_bytes)
 
 
 def binary_to_integer(bin_key):
@@ -67,3 +72,26 @@ def to_binary(value, bit_length = 256):
         return ''.join([bin(x)[2:].zfill(bit_length) for x in value])
     else:
         return bin(value)[2:].zfill(bit_length)
+    
+
+def findChecksum(SentMessage, k=8):
+    packets = [SentMessage[i:i+k] for i in range(0, len(SentMessage), k)]
+    Sum = sum(int(packet, 2) for packet in packets)
+    Sum = bin(Sum)[2:]
+
+    while len(Sum) > k:
+        Sum = bin(int(Sum[:-k], 2) + int(Sum[-k:], 2))[2:]
+    Sum = Sum.zfill(k)
+
+    return ''.join('0' if bit == '1' else '1' for bit in Sum)
+
+def checkReceiverChecksum(ReceivedMessage, Checksum, k=8):
+    packets = [ReceivedMessage[i:i+k] for i in range(0, len(ReceivedMessage), k)]
+    Sum = sum(int(packet, 2) for packet in packets) + int(Checksum, 2)
+    Sum = bin(Sum)[2:]
+
+    while len(Sum) > k:
+        Sum = bin(int(Sum[:-k], 2) + int(Sum[-k:], 2))[2:]
+    Sum = Sum.zfill(k)
+
+    return ''.join('0' if bit == '1' else '1' for bit in Sum)
