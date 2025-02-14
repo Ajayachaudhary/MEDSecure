@@ -46,7 +46,8 @@ def save_decrypted_image(decrypted_data, original_shape, output_path='images/med
         random_sequence = np.random.randint(0, 256, size=(height, width), dtype=np.uint8)
         unscrambled_array[:,:,i] = np.bitwise_xor(decrypted_array[:,:,i], random_sequence)
     
-    unscrambled_array[:2,:,:] = 255  # Mark top 2 rows as white to indicate decryption
+    neighbour_val = np.mean(unscrambled_array[2,:,:], axis=0).astype(np.uint8)
+    unscrambled_array[:2,:,:] = neighbour_val  # Use nehlour value from 3rd row
 
     # Ensure output directory exists
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
