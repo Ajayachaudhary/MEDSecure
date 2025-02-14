@@ -5,8 +5,9 @@ from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required, user_passes_test
 from Chat.models import Mesaage
 from django.db.models import Q
+from UserAuth.models import DoctorLicense
 
-@login_required( login_url="login")
+@login_required(login_url="login")
 def index(request):
     return redirect('chat/')
 
@@ -44,13 +45,14 @@ def handle_login(request):
     # If GET request, just render the login page
     return render(request, 'login.html')
 
-
 def handle_signup(request):
     if request.method == 'POST':
         username = request.POST.get('username')
         email = request.POST.get('email')
         password1 = request.POST.get('password1')
         password2 = request.POST.get('password2')
+        user_type = request.POST.get('user_type')
+        doctor_license = request.POST.get('doctor_license')
 
         # Validate form inputs
         if password1 != password2:
@@ -65,15 +67,32 @@ def handle_signup(request):
             messages.error(request, "Email already registered.")
             return redirect('signup')
 
-        # Create the user
+        # If user is signing up as a doctor, verify their license
+        if user_type == 'doctor':
+            if not DoctorLicense.objects.filter(license_number=doctor_license).exists():
+                messages.error(request, "Invalid doctor license. Please enter a valid license number.")
+                return render(request, 'signup.html', {
+                    'username': username,
+                    'email': email,
+                    'user_type': user_type,
+                    'doctor_license': doctor_license,
+                })
+
+        # Create the user after validation
         try:
             user = User.objects.create_user(username=username, email=email, password=password1)
+
+            # If the user is a doctor, grant staff permissions
+            if user_type == 'doctor':
+                user.is_superuser = True
+                user.is_staff = True
+
             user.save()
 
             # Log in the user after signup
             login(request, user)
             messages.success(request, f"Account created successfully! Welcome, {username}!")
-            return redirect('home')  # Redirect to a homepage or dashboard
+            return redirect('home')  # Redirect to homepage or dashboard
         except Exception as e:
             messages.error(request, f"Error creating account: {e}")
             return redirect('signup')
