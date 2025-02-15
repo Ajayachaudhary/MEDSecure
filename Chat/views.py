@@ -8,6 +8,8 @@ from django.core.files.base import ContentFile
 from django.http import JsonResponse
 from AES_ECC.main import encrypt_and_hide_key, extract_and_decrypt
 from AES_ECC.ECC import curve, G, generate_AES_key
+from UserAuth.models import UserPublicKey
+from django.core.cache import cache
 import os
 import uuid
 
@@ -100,17 +102,18 @@ def chat_template(request):
 @csrf_exempt
 def encrypt_image(request):
     key = generate_AES_key()  # this is aes key generated from generate_AES_key() function in ECC.py, it should generate a new key every time for each image that is going to be sent
-    private_key = 6938227033753900972488869560043356740747013013967433652901998425138991487855  # this private, public key should generate at registration time only for doctor. generation of this code is present in ECC.py
-    public_key = (
-        18978333441288833782926241136669041791189032080772352147125050398549113838242,
-        4574019226635624308158902747633238879561901950062217090244646744259582877871
-    )
     if request.method == 'POST':
         try:
             image_data = request.POST.get('image')  # Get Base64 string
             unique_id = request.POST.get('id')  # Get unique ID
+            receiver_username = request.POST.get('receiver')  # Get receiver username
             if not image_data:
                 return JsonResponse({"error": "No image data received"}, status=400)
+
+            # Get the receiver's public key from the database
+            receiver = User.objects.get(username=receiver_username)
+            user_public_key = UserPublicKey.objects.get(user=receiver)
+            public_key = eval(user_public_key.public_key)  # Convert string representation to tuple
 
             # Split the Base64 header from actual image data
             format, imgstr = image_data.split(';base64,')
@@ -163,16 +166,8 @@ def encrypt_image(request):
                 original_image_name=decoded_image.name,
                 encrypted_image_path=relative_encrypted_path
             )
-            # Decrypt the image (if needed)
-            # decrypted_path = extract_and_decrypt(
-            #     encrypted_path,
-            #     private_key,
-            #     curve,
-            #     os.path.join(encrypted_images_dir, decrypted_filename)
-            # )
-            # print(f"Decrypted image saved at: {decrypted_path}")
 
-            return JsonResponse({"success": True, "message": "Image processed successfully"})
+            return JsonResponse({"success": True, "message": "Image processed successfully", "encrypted_image_path": relative_encrypted_path})
 
         except Exception as e:
             print(f"Error: {e}")  # Print the error to the console
@@ -184,12 +179,17 @@ def encrypt_image(request):
 def decrypt_image(request):
     print("Decrypting image...")
     if request.method == 'POST':
-        private_key = 6938227033753900972488869560043356740747013013967433652901998425138991487855  # this private, public key should generate at registration time only for doctor. generation of this code is present in ECC.py
         encrypted_image_path = request.POST.get('encrypted_image_path')
         if not encrypted_image_path:
             return JsonResponse({"error": "No encrypted image path provided"}, status=400)
 
         try:
+            # Get the private key from the server cache
+            user = request.user
+            private_key = cache.get(f'private_key_{user.id}')
+            if not private_key:
+                return JsonResponse({"error": "Private key not found in cache"}, status=400)
+
             # Decrypt the image
             encrypted_image_full_path = os.path.join(os.path.dirname(__file__), '../media/', encrypted_image_path)
             decrypted_filename = f'{uuid.uuid4()}_decrypted.png'

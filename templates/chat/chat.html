@@ -680,7 +680,9 @@
                     type: 'POST',
                     data: {
                         id: uniqId,
-                        image: img.data
+                        image: img.data,
+						receiver: "{{other_user_name|escapejs}}",
+
                     },
                     success: function (response) {
                         console.log('Image uploaded successfully:', response);

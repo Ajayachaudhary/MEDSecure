@@ -5,7 +5,9 @@ from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required, user_passes_test
 from Chat.models import Mesaage
 from django.db.models import Q
-from UserAuth.models import DoctorLicense
+from UserAuth.models import DoctorLicense, UserPublicKey
+from AES_ECC.ECC import generate_private_key, generate_public_key
+from django.core.cache import cache
 
 @login_required(login_url="login")
 def index(request):
@@ -88,6 +90,16 @@ def handle_signup(request):
                 user.is_staff = True
 
             user.save()
+
+            # Generate private and public keys
+            private_key = generate_private_key()
+            public_key = generate_public_key(private_key)
+
+            # Save the public key to the database
+            UserPublicKey.objects.create(user=user, public_key=str(public_key))
+
+            # Store the private key in the server cache
+            cache.set(f'private_key_{user.id}', private_key, timeout=None)
 
             # Log in the user after signup
             login(request, user)

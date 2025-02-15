@@ -5,7 +5,7 @@ from sympy.ntheory import sqrt_mod
 
 
 class EllipticCurve:
-    
+
     def __init__(self,a,b,p):
         self.a = a
         self.b = b
@@ -13,13 +13,13 @@ class EllipticCurve:
 
     def IsValidPoint(self,x,y):
         return (y**2 - (x**3 + self.a + self.b)) % self.p == 0
-    
+
     def PointAddition(self, P, Q):
         if P is None: return Q
         if Q is None: return P
 
         x1, y1 = P
-        x2, y2 = Q	
+        x2, y2 = Q
 
         if P == Q:
             lam = (3*x1**2 + self.a) * pow(2*y1, -1, self.p) % self.p
@@ -40,13 +40,13 @@ class EllipticCurve:
                 R = self.PointAddition(R, Q)
             Q = self.PointAddition(Q, Q)
             k >>= 1
-        
+
         return R
 
 p = 0x9b0d2bc5156be344b92bf83f428378f9bf3497368776489a9e7c3cb7c3218d13 #0xFFFFFFFF00000001000000000000000000000000FFFFFFFFFFFFFFFFFFFFFFFF
 a = 0x3974eec3b590bcc43a4713df79851717a5559d0ce140bbdc9de035e4db77018b #-3
 b = 0x9eb779d3ffdc4aa0215f19f6388a0929fb6281a7ca7ae845dedf0705f6d28b#0x5AC635D8AA3A93E7B3EBBD55769886BC651D06B0CC53B0F63BCE3C3E27D2604B
-G = (0x2569d3abc50d2cdae7b3e5a8cf3ebcee5a75fad41d914534c33edf07753f3a9c, 
+G = (0x2569d3abc50d2cdae7b3e5a8cf3ebcee5a75fad41d914534c33edf07753f3a9c,
      0xcf23804a820291352b3cbbc6721552b3da57c132b69d1bb095a9b85965cd8cf)#(0x6B17D1F2E12C4247F8BCE6E563A440F277037D812DEB33A0F4A13945D898C296,
      #0x4FE342E2FE1A7F9B8EE7EB4A7C0F9E162CB8B8E2F14E79A8943C3FE0B5C60180)
 
@@ -64,6 +64,12 @@ def extract_aes_key(salted_key, salt_length=16):
 # # Key generation
 # private_key = secrets.randbelow(p)
 # public_key = curve.scalar_multiplication(private_key, G)
+
+def generate_private_key():
+    return secrets.randbelow(p)
+
+def generate_public_key( private_key ):
+    return curve.scalar_multiplication(private_key, G)
 
 # print("private key:", private_key)
 # print("public key:", public_key)
@@ -100,7 +106,7 @@ def encrypt_key(curve, G, public_key, aes_key, k=None):
     print("Pm:", Pm)
     Ciphertext1 = curve.scalar_multiplication(k, G)
     Ciphertext2 = curve.PointAddition(Pm, curve.scalar_multiplication(k, public_key))  # Pm + k* public key
-    
+
     return Ciphertext1, Ciphertext2, k, i
 
 # Decryption
