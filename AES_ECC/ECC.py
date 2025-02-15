@@ -1,3 +1,4 @@
+import os
 import secrets
 import time
 from sympy.ntheory import sqrt_mod
@@ -51,6 +52,14 @@ G = (0x2569d3abc50d2cdae7b3e5a8cf3ebcee5a75fad41d914534c33edf07753f3a9c,
 
 def generate_AES_key():
     return secrets.token_hex(16) # key = "9e3f1a6039b70ac853fb3949883c0cac"
+
+def salting_key(aes_key):
+    salt = os.urandom(16)  # Generate a 16-byte random salt
+    salted_key = salt + aes_key.encode()  # Concatenate salt with the key
+    return salted_key
+
+def extract_aes_key(salted_key, salt_length=16):
+    return salted_key[salt_length:].decode()  # Extract the original key
 
 # # Key generation
 # private_key = secrets.randbelow(p)
