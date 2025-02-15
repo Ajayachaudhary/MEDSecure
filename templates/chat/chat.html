@@ -299,6 +299,27 @@
         .fas {
             color: inherit;
         }
+
+        .loading-spinner {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 1000;
+        }
+
+        .success-message {
+            display: none;
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            background-color: #28a745;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+        }
     </style>
 </head>
 
@@ -520,6 +541,18 @@
         </div>
     </footer>
 
+    <!-- Loading Spinner -->
+    <div class="loading-spinner">
+        <div class="spinner-border text-primary" role="status">
+            <span class="sr-only">Loading...</span>
+        </div>
+    </div>
+
+    <!-- Success Message -->
+    <div class="success-message">
+        Decryption successful! Your image will be downloaded shortly.
+    </div>
+
     <!-- Add Font Awesome for icons -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/js/all.min.js"></script>
     <script src="https://code.jquery.com/jquery-1.10.2.min.js"></script>
@@ -703,6 +736,9 @@
     });
 
     function downloadDecryptedImage(encryptedImagePath) {
+        // Show loading spinner
+        $('.loading-spinner').show();
+
         $.ajax({
             url: '/chat/decrypt_image/',
             type: 'POST',
@@ -710,6 +746,16 @@
                 encrypted_image_path: encryptedImagePath
             },
             success: function (response) {
+                // Hide loading spinner
+                $('.loading-spinner').hide();
+
+                // Show success message
+                $('.success-message').show();
+                setTimeout(function () {
+                    $('.success-message').hide();
+                }, 3000); // Hide after 3 seconds
+
+                // Download the decrypted image
                 const link = document.createElement('a');
                 link.href = response.decrypted_image_url;
                 link.download = 'decrypted_image.png';
@@ -718,6 +764,9 @@
                 document.body.removeChild(link);
             },
             error: function (error) {
+                // Hide loading spinner
+                $('.loading-spinner').hide();
+
                 console.error('Image decryption failed:', error);
             }
         });
