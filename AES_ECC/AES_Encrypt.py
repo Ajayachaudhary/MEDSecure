@@ -1,3 +1,4 @@
+import os
 
 s_box = (
     0x63, 0x7C, 0x77, 0x7B, 0xF2, 0x6B, 0x6F, 0xC5, 0x30, 0x01, 0x67, 0x2B, 0xFE, 0xD7, 0xAB, 0x76,
@@ -91,14 +92,11 @@ def pad(data):
     padding = bytes([padding_length] * padding_length)
     return data + padding
 
-
-
 def split_blocks(data, require_padding=True):
     """Splits data into 16-byte blocks"""
     if require_padding:
         data = pad(data)
     return [data[i:i+16] for i in range(0, len(data), 16)]
-
 
 def expand_key(master_key):
     """Expands the key for all rounds"""
@@ -155,5 +153,30 @@ def encrypt_block(plaintext, key_matrices):
     state = add_round_key(state, key_matrices[-1])
 
     return matrix2bytes(state)
+
+# def encrypt_image(image_bytes, key):
+#     """Encrypts image bytes using AES-CTR mode and returns encrypted data."""
+#     key_matrices = expand_key(key)
+#     blocks = split_blocks(image_bytes)
+    
+#     # Generate random nonce
+#     nonce = os.urandom(8)
+#     counter = 0
+#     encrypted_blocks = [nonce]  # Include nonce as first block
+    
+#     for block in blocks:
+#         # Generate counter block
+#         counter_bytes = counter.to_bytes(8, byteorder='big')
+#         iv = nonce + counter_bytes
+        
+#         # Encrypt counter block
+#         encrypted_counter = encrypt_block(iv, key_matrices)
+        
+#         # XOR with plaintext
+#         encrypted_block = bytes(a ^ b for a, b in zip(block, encrypted_counter))
+#         encrypted_blocks.append(encrypted_block)
+#         counter += 1
+        
+#     return b''.join(encrypted_blocks)
 
 

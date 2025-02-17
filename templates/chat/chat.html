@@ -299,6 +299,27 @@
         .fas {
             color: inherit;
         }
+
+        .loading-spinner {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 1000;
+        }
+
+        .success-message {
+            display: none;
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            background-color: #28a745;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+        }
     </style>
 </head>
 
@@ -380,7 +401,7 @@
                                     <strong>{{ other_user_name }}</strong>
                                 </div>
                                 <div>
-                                    <button class="btn btn-primary btn-lg mr-1 px-3"><svg
+                                    {% comment %} <button class="btn btn-primary btn-lg mr-1 px-3"><svg
                                             xmlns="http://www.w3.org/2000/svg" width="24" height="24"
                                             viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                                             stroke-linecap="round" stroke-linejoin="round"
@@ -388,16 +409,16 @@
                                             <path
                                                 d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z">
                                             </path>
-                                        </svg></button>
-                                    <button class="btn btn-info btn-lg mr-1 px-3 d-none d-md-inline-block"><svg
+                                        </svg></button> {% endcomment %}
+                                    {% comment %} <button class="btn btn-info btn-lg mr-1 px-3 d-none d-md-inline-block"><svg
                                             xmlns="http://www.w3.org/2000/svg" width="24" height="24"
                                             viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                                             stroke-linecap="round" stroke-linejoin="round"
                                             class="feather feather-video feather-lg">
                                             <polygon points="23 7 16 12 23 17 23 7"></polygon>
                                             <rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect>
-                                        </svg></button>
-                                    <button class="btn btn-light border btn-lg px-3"><svg
+                                        </svg></button> {% endcomment %}
+                                    {% comment %} <button class="btn btn-light border btn-lg px-3"><svg
                                             xmlns="http://www.w3.org/2000/svg" width="24" height="24"
                                             viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
                                             stroke-linecap="round" stroke-linejoin="round"
@@ -405,7 +426,7 @@
                                             <circle cx="12" cy="12" r="1"></circle>
                                             <circle cx="19" cy="12" r="1"></circle>
                                             <circle cx="5" cy="12" r="1"></circle>
-                                        </svg></button>
+                                        </svg></button> {% endcomment %}
                                 </div>
                             </div>
                         </div>
@@ -460,11 +481,16 @@
                                         {% if message.content and message.content != "None" %}
                                             {{ message.content }}
                                         {% endif %}
-                                        {% if message.image %}
+                                        <!-- {% if message.image %}
                                             <div class="mt-2">
                                                 <img src="{{ message.image.url }}" class="img-fluid" style="max-width: 300px;" alt="Shared image">
                                             </div>
-                                        {% endif %}
+                                        {% endif %} -->
+										{% if message.encrypted_image_path %}
+											<div class="mt-2">
+												<button class="btn btn-secondary btn-sm mt-2" onclick="downloadDecryptedImage('{{ message.encrypted_image_path }}')">Download Decrypted Image</button>
+											</div>
+										{% endif %}
                                     </div>
                                 </div>
                                 {% endif %}
@@ -515,6 +541,18 @@
         </div>
     </footer>
 
+    <!-- Loading Spinner -->
+    <div class="loading-spinner">
+        <div class="spinner-border text-primary" role="status">
+            <span class="sr-only">Loading...</span>
+        </div>
+    </div>
+
+    <!-- Success Message -->
+    <div class="success-message">
+        Decryption successful! Your image will be downloaded shortly.
+    </div>
+
     <!-- Add Font Awesome for icons -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/js/all.min.js"></script>
     <script src="https://code.jquery.com/jquery-1.10.2.min.js"></script>
@@ -525,177 +563,213 @@
 </body>
 
 <script>
-    const room_name = "{{ room_name|escapejs }}";
-    const chatSocket = new WebSocket(
-        'ws://'
-        + window.location.host
-        + '/ws/chat/'
-        + room_name
-        + '/'
-    );
+    $(document).ready(function () {
+        const room_name = "{{ room_name|escapejs }}";
+        const chatSocket = new WebSocket(
+            'ws://' + window.location.host + '/ws/chat/' + room_name + '/'
+        );
 
-    console.log(room_name);
-    chatSocket.onopen = function () {
-        console.log("WebSocket connection established.");
-    };
+        console.log(room_name);
 
-    chatSocket.onmessage = function (event) {
-        console.log("Received message:", event.data);
+        chatSocket.onopen = function () {
+            console.log("WebSocket connection established.");
+        };
 
-        // Parse the JSON data
-        const data = JSON.parse(event.data);
+        chatSocket.onmessage = function (event) {
+            console.log("Received message:", event.data);
 
-        // Check if the message object is present
-        if (data.message) {
-            const messageContent = data.message.message;
-            const sender = data.message.sender;
+            // Parse the JSON data
+            const data = JSON.parse(event.data);
 
-            // Determine whether the sender is the current user or the other user
-            const isCurrentUser = sender === "{{ current_user }}";
+            if (data.message) {
+                const messageContent = data.message.message;
+                const sender = data.message.sender;
+                const isCurrentUser = sender === "{{ current_user }}";
 
-            // Create the message element
-            const messageElement = document.createElement('div');
-            messageElement.classList.add('pb-4');
-            messageElement.classList.add(isCurrentUser ? 'chat-message-right' : 'chat-message-left');
+                const messageElement = $(`
+                    <div class="pb-4 ${isCurrentUser ? 'chat-message-right' : 'chat-message-left'}">
+                        <div>
+                            <img src="${isCurrentUser ? 'https://bootdey.com/img/Content/avatar/avatar1.png' : 'https://bootdey.com/img/Content/avatar/avatar3.png'}"
+                                class="rounded-circle mr-1" alt="${sender}" width="40" height="40">
+                            <div class="text-muted small text-nowrap mt-2">
+                                ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })}
+                            </div>
+                        </div>
+                        <div class="flex-shrink-1 bg-light rounded py-2 px-3 ${isCurrentUser ? 'mr-3' : 'ml-3'}">
+                            ${isCurrentUser ? '' : `<div class="font-weight-bold mb-1">${sender}</div>`}
+                            ${data.message.type === 'image'
+                                ? `<img src="${messageContent}" class="img-fluid" style="max-width: 300px;" alt="Uploaded image">`
+                                : messageContent}
+                        </div>
+                    </div>
+                `);
 
-            // Build the message content
-            messageElement.innerHTML = `
-            <div>
-                <img src="${isCurrentUser ? 'https://bootdey.com/img/Content/avatar/avatar1.png' : 'https://bootdey.com/img/Content/avatar/avatar3.png'}"
-                    class="rounded-circle mr-1" alt="${sender}" width="40" height="40">
-                <div class="text-muted small text-nowrap mt-2">
-                    ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })}
-                </div>
-            </div>
-            <div class="flex-shrink-1 bg-light rounded py-2 px-3 ${isCurrentUser ? 'mr-3' : 'ml-3'}">
-                ${isCurrentUser ? '' : `<div class="font-weight-bold mb-1">${sender}</div>`}
-                ${data.message.type === 'image'
-                    ? `<img src="${messageContent}" class="img-fluid" style="max-width: 300px;" alt="Uploaded image">`
-                    : messageContent}
-            </div>
-        `;
+                $('.chat-messages').append(messageElement);
+                $('.chat-messages').scrollTop($('.chat-messages')[0].scrollHeight);
+            }
 
-            // Append the message to the chat-messages container
-            const messagesContainer = document.querySelector('.chat-messages');
-            messagesContainer.appendChild(messageElement);
+            if (data.type === "user_list") {
+                updateOnlineStatus(data.connected_users);
+            }
+        };
 
-            // Scroll to the bottom of the chat
-            messagesContainer.scrollTop = messagesContainer.scrollHeight;
-        }
+        chatSocket.onclose = function () {
+            console.log("WebSocket connection closed.");
+        };
 
-        if (data.type === "user_list") {
-            // Update online/offline status for all users
-            updateOnlineStatus(data.connected_users);
-        }
-    };
+        chatSocket.onerror = function (error) {
+            console.error("WebSocket error:", error);
+        };
 
-    chatSocket.onclose = function () {
-        console.log("WebSocket connection closed.");
-    };
+        let selectedImages = [];
 
-    chatSocket.onerror = function (error) {
-        console.error("WebSocket error:", error);
-    };
+        $('#file-upload').on('change', function (e) {
+            const files = Array.from(e.target.files);
+            const previewContainer = $('#preview-container');
 
-    let selectedImages = [];
+            files.forEach(file => {
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    const imageContainer = $('<div class="position-relative d-inline-block m-2"></div>');
+                    const img = $(`<img src="${e.target.result}" style="max-width: 150px; max-height: 150px;" class="mr-2">`);
+                    const removeBtn = $('<button class="btn btn-sm btn-danger position-absolute" style="top: 0; right: 0;">×</button>');
 
-    document.getElementById('file-upload').addEventListener('change', function(e) {
-        const files = Array.from(e.target.files);
-        const previewContainer = document.getElementById('preview-container');
+                    imageContainer.append(img, removeBtn);
+                    previewContainer.append(imageContainer);
 
-        files.forEach(file => {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const imageContainer = document.createElement('div');
-                imageContainer.className = 'position-relative d-inline-block m-2';
+                    selectedImages.push({
+                        container: imageContainer,
+                        data: e.target.result
+                    });
 
-                const img = document.createElement('img');
-                img.src = e.target.result;
-                img.style.maxWidth = '150px';
-                img.style.maxHeight = '150px';
-                img.className = 'mr-2';
-
-                const removeBtn = document.createElement('button');
-                removeBtn.className = 'btn btn-sm btn-danger position-absolute';
-                removeBtn.innerHTML = '×';
-                removeBtn.style.top = '0';
-                removeBtn.style.right = '0';
-
-                imageContainer.appendChild(img);
-                imageContainer.appendChild(removeBtn);
-                previewContainer.appendChild(imageContainer);
-
-                selectedImages.push({
-                    container: imageContainer,
-                    data: e.target.result
-                });
-
-                removeBtn.onclick = function() {
-                    const index = selectedImages.findIndex(img => img.container === imageContainer);
-                    if (index > -1) {
-                        selectedImages.splice(index, 1);
-                        imageContainer.remove();
-                    }
-                    if (selectedImages.length === 0) {
-                        document.getElementById('image-preview').style.display = 'none';
-                    }
+                    removeBtn.on('click', function () {
+                        const index = selectedImages.findIndex(img => img.container[0] === imageContainer[0]);
+                        if (index > -1) {
+                            selectedImages.splice(index, 1);
+                            imageContainer.remove();
+                        }
+                        if (selectedImages.length === 0) {
+                            $('#image-preview').hide();
+                        }
+                    });
                 };
-            };
-            reader.readAsDataURL(file);
+                reader.readAsDataURL(file);
+            });
+
+            $('#image-preview').show();
         });
 
-        document.getElementById('image-preview').style.display = 'block';
+        $('#chat-message-submit').on('click', function (e) {
+            const messageInput = $('#chat-message-input');
+            const message = messageInput.val();
+
+            // Send images if any are selected
+            selectedImages.forEach(img => {
+                let uniqId = uuidv4(); // Generate a unique ID
+                chatSocket.send(JSON.stringify({
+                    'id': uniqId,
+                    'message': img.data,
+                    'receiver': "{{other_user_name|escapejs}}",
+                    'sender': "{{current_user}}",
+                    'type': 'image'
+                }));
+
+                // Send image using AJAX
+                $.ajax({
+                    url: '/chat/encrypt_image/', // Ensure the trailing slash is included
+                    type: 'POST',
+                    data: {
+                        id: uniqId,
+                        image: img.data,
+						receiver: "{{other_user_name|escapejs}}",
+
+                    },
+                    success: function (response) {
+                        console.log('Image uploaded successfully:', response);
+                    },
+                    error: function (error) {
+                        console.error('Image upload failed:', error);
+                    }
+                });
+            });
+
+            // Clear image preview
+            if (selectedImages.length > 0) {
+                selectedImages = [];
+                $('#preview-container').empty();
+                $('#image-preview').hide();
+                $('#file-upload').val('');
+            }
+
+            // Send text message if any
+            if (message) {
+                chatSocket.send(JSON.stringify({
+                    'message': message,
+                    'receiver': "{{other_user_name|escapejs}}",
+                    'sender': "{{current_user}}"
+                }));
+                messageInput.val('');
+            }
+        });
+
+        function updateOnlineStatus(connectedUsers) {
+            $('.user-status').each(function () {
+                const username = $(this).data('username');
+                const isOnline = connectedUsers.includes(username);
+
+                $(this).removeClass('chat-online chat-offline')
+                    .addClass(isOnline ? 'chat-online' : 'chat-offline');
+
+                const statusText = $(this).next();
+                if (statusText.length) {
+                    statusText.text(isOnline ? 'Online' : 'Offline');
+                }
+            });
+        }
+
+        // Function to generate a unique ID
+        function uuidv4() {
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+                const r = Math.random() * 16 | 0,
+                    v = c === 'x' ? r : (r & 0x3 | 0x8);
+                return v.toString(16);
+            });
+        }
     });
 
-    document.querySelector('#chat-message-submit').onclick = function(e) {
-        const messageInputDom = document.querySelector('#chat-message-input');
-        const message = messageInputDom.value;
+    function downloadDecryptedImage(encryptedImagePath) {
+        // Show loading spinner
+        $('.loading-spinner').show();
 
-        // Send images if any are selected
-        selectedImages.forEach(img => {
-            chatSocket.send(JSON.stringify({
-                'message': img.data,
-                'receiver': "{{other_user_name|escapejs}}",
-                'sender': "{{current_user}}",
-                'type': 'image'
-            }));
-        });
+        $.ajax({
+            url: '/chat/decrypt_image/',
+            type: 'POST',
+            data: {
+                encrypted_image_path: encryptedImagePath
+            },
+            success: function (response) {
+                // Hide loading spinner
+                $('.loading-spinner').hide();
 
-        // Clear image preview
-        if (selectedImages.length > 0) {
-            selectedImages = [];
-            document.getElementById('preview-container').innerHTML = '';
-            document.getElementById('image-preview').style.display = 'none';
-            document.getElementById('file-upload').value = '';
-        }
+                // Show success message
+                $('.success-message').show();
+                setTimeout(function () {
+                    $('.success-message').hide();
+                }, 3000); // Hide after 3 seconds
 
-        // Send text message if any
-        if (message) {
-            chatSocket.send(JSON.stringify({
-                'message': message,
-                'receiver': "{{other_user_name|escapejs}}",
-                'sender': "{{current_user}}"
-            }));
-            messageInputDom.value = '';
-        }
-    };
+                // Download the decrypted image
+                const link = document.createElement('a');
+                link.href = response.decrypted_image_url;
+                link.download = 'decrypted_image.png';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            },
+            error: function (error) {
+                // Hide loading spinner
+                $('.loading-spinner').hide();
 
-    function updateOnlineStatus(connectedUsers) {
-        // Get all user status indicators
-        const statusIndicators = document.querySelectorAll('.user-status');
-
-        statusIndicators.forEach(indicator => {
-            const username = indicator.getAttribute('data-username');
-            const isOnline = connectedUsers.includes(username);
-
-            // Update status icon
-            indicator.classList.remove('chat-online', 'chat-offline');
-            indicator.classList.add(isOnline ? 'chat-online' : 'chat-offline');
-
-            // Update status text
-            const statusText = indicator.nextElementSibling;
-            if (statusText) {
-                statusText.textContent = isOnline ? 'Online' : 'Offline';
+                console.error('Image decryption failed:', error);
             }
         });
     }

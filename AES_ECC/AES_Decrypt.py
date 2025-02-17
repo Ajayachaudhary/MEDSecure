@@ -1,3 +1,5 @@
+from .AES_Encrypt import split_blocks, expand_key, pad, encrypt_block
+
 INV_S_BOX = [
     0x52, 0x09, 0x6a, 0xd5, 0x30, 0x36, 0xa5, 0x38, 0xbf, 0x40, 0xa3, 0x9e, 0x81, 0xf3, 0xd7, 0xfb,
     0x7c, 0xe3, 0x39, 0x82, 0x9b, 0x2f, 0xff, 0x87, 0x34, 0x8e, 0x43, 0x44, 0xc4, 0xde, 0xe9, 0xcb,
@@ -46,31 +48,31 @@ def INV_SHIFT_ROWS(state):
     """Inverse shifts the rows of the state matrix"""
     # Create a new state matrix to avoid modifying the original
     new_state = [row[:] for row in state]  # Deep copy of state
-    
+
     # Perform the inverse shifts
     for i in range(1, 4):
         new_state[i] = new_state[i][-i:] + new_state[i][:-i]
-    
+
     return new_state
 
 def INV_MIX_COLUMN(state):
     """Inverse mixes columns of the state matrix"""
     for i in range(4):
         column = [state[j][i] for j in range(4)]
-        
+
         # Save original values
         a = column[:]
-        
+
         # Perform inverse mix column operation
         column[0] = mul_by_0e(a[0]) ^ mul_by_0b(a[1]) ^ mul_by_0d(a[2]) ^ mul_by_09(a[3])
         column[1] = mul_by_09(a[0]) ^ mul_by_0e(a[1]) ^ mul_by_0b(a[2]) ^ mul_by_0d(a[3])
         column[2] = mul_by_0d(a[0]) ^ mul_by_09(a[1]) ^ mul_by_0e(a[2]) ^ mul_by_0b(a[3])
         column[3] = mul_by_0b(a[0]) ^ mul_by_0d(a[1]) ^ mul_by_09(a[2]) ^ mul_by_0e(a[3])
-        
+
         # Put column back into state
         for j in range(4):
             state[j][i] = column[j]
-    
+
     return state
 
 def mul_by_02(x):
@@ -95,8 +97,11 @@ def xtime(a):
     """Performs xtime operation used in MixColumns"""
     return ((a << 1) ^ 0x1B) & 0xFF if (a & 0x80) else (a << 1)
 
-
-
+def split_blocks(data, require_padding=True):
+    """Splits data into 16-byte blocks"""
+    if require_padding:
+        data = pad(data)
+    return [data[i:i+16] for i in range(0, len(data), 16)]
 
 def decrypt_block(ciphertext, key_matrices):
     """Decrypts a single 16-byte block"""
@@ -133,3 +138,38 @@ def unpad(padded_data):
     if padded_data[-padding_len:] != bytes([padding_len] * padding_len):
         raise ValueError("Invalid padding.")
     return padded_data[:-padding_len]
+
+# def decrypt_image(encrypted_bytes, key):
+#     """Decrypts AES-CTR encrypted image bytes and returns the decrypted data."""
+#     if len(encrypted_bytes) < 16:  # Need at least nonce (8 bytes)
+#         raise ValueError("Encrypted data too short")
+
+#     # Extract nonce and ciphertext
+#     nonce = encrypted_bytes[:8]
+#     encrypted_blocks = [encrypted_bytes[i:i+16] for i in range(8, len(encrypted_bytes), 16)]
+
+#     key_matrices = expand_key(key)
+#     counter = 0
+#     decrypted_blocks = []
+
+#     for block in encrypted_blocks:
+#         # Generate counter block
+#         counter_bytes = counter.to_bytes(8, byteorder='big')
+#         iv = nonce + counter_bytes
+
+#         # Encrypt counter block
+#         encrypted_counter = encrypt_block(iv, key_matrices)
+
+#         # XOR with ciphertext
+#         decrypted_block = bytes(a ^ b for a, b in zip(block, encrypted_counter))
+#         decrypted_blocks.append(decrypted_block)
+#         counter += 1
+
+#     decrypted_data = b''.join(decrypted_blocks)
+
+#     try:
+#         decrypted_data = unpad(decrypted_data)
+#     except ValueError:
+#         print("No valid padding found, skipping unpadding.")
+
+#     return decrypted_data

@@ -53,9 +53,11 @@ class ChatConsumer(AsyncWebsocketConsumer):
         data = json.loads(text_data)
         message_type = data.get('type', 'text')
         receiver_username = data.get('receiver')
+        unique_id = data.get('id', 'id')  # Get the unique ID or generate a new one
 
         # Save message to database
         await self.save_message(
+            unique_id=unique_id,
             content=data.get('message'),
             receiver_username=receiver_username,
             message_type=message_type
@@ -67,6 +69,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
             {
                 "type": "chat.message",
                 "message": {
+                    "id": unique_id,
                     "message": data.get('message'),
                     "sender": data.get('sender'),
                     "type": message_type
@@ -75,7 +78,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
         )
 
     @database_sync_to_async
-    def save_message(self, content, receiver_username, message_type='text'):
+    def save_message(self, unique_id, content, receiver_username, message_type='text'):
         try:
             receiver = User.objects.get(username=receiver_username)
 
@@ -86,6 +89,7 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 image_data = ContentFile(base64.b64decode(imgstr), name=f'chat_image.{ext}')
 
                 Mesaage.objects.create(
+                    chat_id=unique_id,
                     sender=self.user,
                     receiver=receiver,
                     image=image_data
