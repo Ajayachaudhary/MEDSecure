@@ -3,6 +3,7 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib import messages
 from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required, user_passes_test
+from django.views.decorators.csrf import csrf_exempt
 from Chat.models import Mesaage
 from django.db.models import Q
 from UserAuth.models import DoctorLicense, UserPublicKey
@@ -27,6 +28,7 @@ def handle_logout(request):
     messages.success(request, "You have successfully logged out.")
     return redirect('login')  # Redirect to the login page or any page you prefer
 
+@csrf_exempt
 def handle_login(request):
     if request.method == 'POST':
         username = request.POST.get('username')
@@ -46,7 +48,7 @@ def handle_login(request):
 
     # If GET request, just render the login page
     return render(request, 'login.html')
-
+@csrf_exempt
 def handle_signup(request):
     if request.method == 'POST':
         username = request.POST.get('username')
